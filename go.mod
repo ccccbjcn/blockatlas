@@ -6,6 +6,7 @@ require (
 	github.com/Pantani/httpexpect v2.0.0+incompatible
 	github.com/alecthomas/template v0.0.0-20190718012654-fb15b899a751
 	github.com/btcsuite/btcutil v0.0.0-20190425235716-9e5f4b9a998d
+	github.com/cenkalti/backoff v2.2.1+incompatible
 	github.com/chenjiandongx/ginprom v0.0.0-20190821062536-3a28e619013b
 	github.com/deckarep/golang-set v1.7.1
 	github.com/ethereum/go-ethereum v1.9.2
@@ -24,6 +25,7 @@ require (
 	github.com/mr-tron/base58 v1.1.2
 	github.com/patrickmn/go-cache v2.1.0+incompatible
 	github.com/prometheus/client_golang v1.0.0
+	github.com/robfig/cron v1.2.0
 	github.com/sirupsen/logrus v1.4.2
 	github.com/spf13/cast v1.3.0
 	github.com/spf13/cobra v0.0.5
