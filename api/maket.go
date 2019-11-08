@@ -3,7 +3,9 @@ package api
 import (
 	"github.com/gin-gonic/gin"
 	market "github.com/trustwallet/blockatlas/marketdata"
+	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/ginutils"
+	"github.com/trustwallet/blockatlas/storage"
 	"net/http"
 )
 
@@ -13,9 +15,9 @@ type TickerRequest struct {
 }
 
 type Coin struct {
-	Coin     string          `json:"coin"`
-	CoinType market.CoinType `json:"type"`
-	TokenId  string          `json:"token_id,omitempty"`
+	Coin     string              `json:"coin"`
+	CoinType blockatlas.CoinType `json:"type"`
+	TokenId  string              `json:"token_id,omitempty"`
 }
 
 // @Summary Get ticker value for a specific market
@@ -28,7 +30,7 @@ type Coin struct {
 // @Param address path string true "the query address" default(tz1WCd2jm4uSt4vntk4vSuUWoZQGhLcDuR9q)
 // @Success 200 {object} api.MarketDataResponse
 // @Router /v1/market [get]
-func getTickerHandler(storage market.Storage) func(c *gin.Context) {
+func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 	if storage == nil {
 		return nil
 	}
@@ -57,7 +59,7 @@ func getTickerHandler(storage market.Storage) func(c *gin.Context) {
 // @Param subscriptions body api.MarketDataRequest true "Ticker"
 // @Success 200 {object} api.MarketDataResponse
 // @Router /v1/market [post]
-func getTickersHandler(storage *market.Storage) func(c *gin.Context) {
+func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 	if storage == nil {
 		return nil
 	}
@@ -67,6 +69,6 @@ func getTickersHandler(storage *market.Storage) func(c *gin.Context) {
 			ginutils.ErrorResponse(c).Message(err.Error()).Render()
 			return
 		}
-		ginutils.RenderSuccess(c, []market.Ticker{})
+		ginutils.RenderSuccess(c, []blockatlas.Ticker{})
 	}
 }
