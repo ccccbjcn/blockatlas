@@ -3,34 +3,19 @@ package dex
 import (
 	"github.com/trustwallet/blockatlas/marketdata/provider"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
+	"github.com/trustwallet/blockatlas/pkg/errors"
+	"github.com/trustwallet/blockatlas/pkg/logger"
 	"github.com/trustwallet/blockatlas/storage"
+	"strconv"
 	"time"
 )
 
 type CoinPrice struct {
-	Symbol             string `json:"symbol"`
-	BaseAssetName      string `json:"baseAssetName"`
-	QuoteAssetName     string `json:"quoteAssetName"`
-	PriceChange        string `json:"priceChange"`
-	PriceChangePercent string `json:"priceChangePercent"`
-	PrevClosePrice     string `json:"prevClosePrice"`
-	LastPrice          string `json:"lastPrice"`
-	LastQuantity       string `json:"lastQuantity"`
-	OpenPrice          string `json:"openPrice"`
-	HighPrice          string `json:"highPrice"`
-	LowPrice           string `json:"lowPrice"`
-	OpenTime           uint64 `json:"openTime"`
-	CloseTime          uint64 `json:"closeTime"`
-	FirstId            string `json:"firstId"`
-	LastId             string `json:"lastId"`
-	BidPrice           string `json:"bidPrice"`
-	BidQuantity        string `json:"bidQuantity"`
-	AskPrice           string `json:"askPrice"`
-	AskQuantity        string `json:"askQuantity"`
-	WeightedAvgPrice   string `json:"weightedAvgPrice"`
-	Volume             string `json:"volume"`
-	QuoteVolume        string `json:"quoteVolume"`
-	Count              uint64 `json:"count"`
+	Symbol         string `json:"symbol"`
+	BaseAssetName  string `json:"baseAssetName"`
+	QuoteAssetName string `json:"quoteAssetName"`
+	PriceChange    string `json:"priceChange"`
+	LastPrice      string `json:"lastPrice"`
 }
 
 type Market struct {
@@ -53,12 +38,43 @@ func InitMarket(storage storage.Market) *Market {
 
 func (p *Market) GetData() ([]blockatlas.Ticker, error) {
 	var prices []CoinPrice
-	p.Client.Get(&prices, "", nil)
-	ticker := []blockatlas.Ticker{
-		{Coin: "BTC", CoinType: blockatlas.TypeCoin, Price: blockatlas.TickerPrice{Value: 111, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-		{Coin: "ETH", TokenId: "HT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 222, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-		{Coin: "OMNI", TokenId: "USDT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 333, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-		{Coin: "ETH", TokenId: "BLA", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 444, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
+	err := p.Client.Get(&prices, "", nil)
+	if err != nil {
+		return nil, err
 	}
-	return ticker, nil
+	return NormalizeTickers(prices), nil
+}
+
+func NormalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
+	value, err := strconv.ParseFloat(price.LastPrice, 64)
+	if err != nil {
+		return nil, errors.E(err, "NormalizeTicker parse value error",
+			errors.Params{"LastPrice": price.LastPrice, "Symbol": price.Symbol})
+	}
+	value24h, err := strconv.ParseFloat(price.PriceChange, 64)
+	if err != nil {
+		return nil, errors.E(err, "NormalizeTicker parse value24h error",
+			errors.Params{"PriceChange": price.PriceChange, "Symbol": price.Symbol})
+	}
+	return &blockatlas.Ticker{
+		Coin:     price.Symbol,
+		CoinType: blockatlas.TypeCoin,
+		Price: blockatlas.TickerPrice{
+			Value:     value,
+			Change24h: value24h,
+		},
+		LastUpdate: time.Now(),
+	}, nil
+}
+
+func NormalizeTickers(prices []CoinPrice) (tickers []blockatlas.Ticker) {
+	for _, price := range prices {
+		t, err := NormalizeTicker(price)
+		if err != nil {
+			logger.Error(err)
+			continue
+		}
+		tickers = append(tickers, *t)
+	}
+	return
 }

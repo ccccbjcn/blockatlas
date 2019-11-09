@@ -5,6 +5,7 @@ import (
 	"github.com/cenkalti/backoff"
 	"github.com/robfig/cron"
 	"github.com/trustwallet/blockatlas/marketdata/provider"
+	cmc "github.com/trustwallet/blockatlas/marketdata/provider/coinmarketcap"
 	"github.com/trustwallet/blockatlas/marketdata/provider/dex"
 	"github.com/trustwallet/blockatlas/pkg/logger"
 	"github.com/trustwallet/blockatlas/storage"
@@ -19,12 +20,7 @@ func InitProviders(storage storage.Market) {
 	AddManyMarketData(storage,
 		provider.Providers{
 			0: dex.InitMarket(storage),
-			//1: provider.Provider{
-			//	Id:   "cmc",
-			//	Name: "CoinMarketCap",
-			//	URL:  "https://coinmarketcap.com/",
-			//	UpdateTime: time.Second,
-			//},
+			1: cmc.InitMarket(storage),
 		})
 
 }
