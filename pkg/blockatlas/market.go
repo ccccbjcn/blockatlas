@@ -1,13 +1,14 @@
 package blockatlas
 
-import "time"
+import (
+	"time"
+)
 
 const (
 	TypeCoin  CoinType = "coin"
 	TypeToken CoinType = "token"
 )
 
-type MarketPriority int
 type CoinType string
 
 type Ticker struct {

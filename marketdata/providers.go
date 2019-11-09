@@ -4,78 +4,37 @@ import (
 	"fmt"
 	"github.com/cenkalti/backoff"
 	"github.com/robfig/cron"
-	"github.com/trustwallet/blockatlas/pkg/blockatlas"
+	"github.com/trustwallet/blockatlas/marketdata/provider"
+	"github.com/trustwallet/blockatlas/marketdata/provider/dex"
 	"github.com/trustwallet/blockatlas/pkg/logger"
 	"github.com/trustwallet/blockatlas/storage"
 	"time"
 )
 
 const (
-	backoffValue      = 3
-	defaultUpdateTime = time.Second * 2
+	backoffValue = 3
 )
-
-type Providers map[blockatlas.MarketPriority]Provider
-
-type Provider struct {
-	ID             string
-	Name           string
-	URL            string
-	UpdateTime     time.Duration
-	GetData        func() (interface{}, error)
-	NormalizeCoins func(interface{}) ([]blockatlas.Ticker, error)
-	Storage        storage.Market
-}
 
 func InitProviders(storage storage.Market) {
 	AddManyMarketData(storage,
-		Providers{
-			0: {
-				ID:   "dex",
-				Name: "Binance Dex",
-				URL:  "https://www.binance.org/",
-				GetData: func() (interface{}, error) {
-					return "BTC", nil
-				},
-				NormalizeCoins: func(d interface{}) ([]blockatlas.Ticker, error) {
-					return []blockatlas.Ticker{
-						{Coin: "BTC", CoinType: blockatlas.TypeCoin, Price: blockatlas.TickerPrice{Value: 555, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-						{Coin: "ETH", TokenId: "HT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 666, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-						{Coin: "OMNI", TokenId: "USDT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 777, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-						{Coin: "OMNI", TokenId: "THT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 888, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-					}, nil
-				},
-				Storage:    storage,
-				UpdateTime: defaultUpdateTime,
-			},
-			1: {
-				ID:   "cmc",
-				Name: "CoinMarketCap",
-				URL:  "https://coinmarketcap.com/",
-				GetData: func() (interface{}, error) {
-					return "BTC", nil
-				},
-				NormalizeCoins: func(d interface{}) ([]blockatlas.Ticker, error) {
-					return []blockatlas.Ticker{
-						{Coin: "BTC", CoinType: blockatlas.TypeCoin, Price: blockatlas.TickerPrice{Value: 111, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-						{Coin: "ETH", TokenId: "HT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 222, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-						{Coin: "OMNI", TokenId: "USDT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 333, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-						{Coin: "ETH", TokenId: "BLA", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 444, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
-					}, nil
-				},
-				Storage:    storage,
-				UpdateTime: time.Second,
-			},
+		provider.Providers{
+			0: dex.InitMarket(storage),
+			//1: provider.Provider{
+			//	Id:   "cmc",
+			//	Name: "CoinMarketCap",
+			//	URL:  "https://coinmarketcap.com/",
+			//	UpdateTime: time.Second,
+			//},
 		})
 
 }
 
-func AddManyMarketData(storage storage.Market, ps Providers) {
+func AddManyMarketData(storage storage.Market, ps provider.Providers) {
 	c := cron.New()
-	priorityList := make(map[blockatlas.MarketPriority]string)
-	for priority, provider := range ps {
-		ScheduleRun(provider, c)
-		priorityList[priority] = provider.ID
+	priorityList := make(map[int]string)
+	for priority, p := range ps {
+		ScheduleRun(p, c)
+		priorityList[int(priority)] = p.GetId()
 	}
 	err := storage.SaveMarketPriority(priorityList)
 	if err != nil {
@@ -85,11 +44,16 @@ func AddManyMarketData(storage storage.Market, ps Providers) {
 	<-make(chan bool)
 }
 
-func ScheduleRun(md Provider, c *cron.Cron) {
-	t := md.UpdateTime.Seconds()
+func ScheduleRun(m provider.Provider, c *cron.Cron) {
+	err := m.Init()
+	if err != nil {
+		logger.Error(err, "Init Provider Error", logger.Params{"provider": m.GetId()})
+		return
+	}
+	t := m.GetUpdateTime().Seconds()
 	spec := fmt.Sprintf("@every %ds", uint64(t))
-	err := c.AddFunc(spec, func() {
-		ProcessBackoff(md.Run)
+	err = c.AddFunc(spec, func() {
+		ProcessBackoff(m.Run)
 	})
 	if err != nil {
 		logger.Error(err, "AddFunc")

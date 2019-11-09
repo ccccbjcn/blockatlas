@@ -2,16 +2,17 @@ package api
 
 import (
 	"github.com/gin-gonic/gin"
-	market "github.com/trustwallet/blockatlas/marketdata"
+	"github.com/spf13/viper"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/ginutils"
 	"github.com/trustwallet/blockatlas/storage"
 	"net/http"
+	"strings"
 )
 
 type TickerRequest struct {
-	Currency market.Currency `json:"currency"`
-	Coins    []Coin          `json:"coins"`
+	Currency string `json:"currency"`
+	Coins    []Coin `json:"coins"`
 }
 
 type Coin struct {
@@ -20,8 +21,14 @@ type Coin struct {
 	TokenId  string              `json:"token_id,omitempty"`
 }
 
+func SetupMarketAPI(router gin.IRouter, db storage.Market) {
+	router.Use(ginutils.TokenAuthMiddleware(viper.GetString("market.auth")))
+	router.GET("/:coin/ticker", getTickerHandler(db))
+	//router.POST("/webhook/register", addCall(db))
+}
+
 // @Summary Get ticker value for a specific market
-// @ID get_ticker
+// @Id get_ticker
 // @Description Get the ticker value from an market and coin/token
 // @Accept json
 // @Produce json
@@ -36,6 +43,7 @@ func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 	}
 	return func(c *gin.Context) {
 		coin := c.Param("coin")
+		coin = strings.ToUpper(coin)
 		if coin == "" {
 			emptyPage(c)
 			return
@@ -51,7 +59,7 @@ func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 }
 
 // @Summary Get ticker values for a specific markets
-// @ID get_tickers
+// @Id get_tickers
 // @Description Get the ticker values from many markets and coin/token
 // @Accept json
 // @Produce json

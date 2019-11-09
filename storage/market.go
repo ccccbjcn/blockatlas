@@ -9,11 +9,11 @@ const (
 	EntityPriority = "market_priority"
 )
 
-func (s *Storage) SaveMarketPriority(p map[blockatlas.MarketPriority]string) error {
+func (s *Storage) SaveMarketPriority(p map[int]string) error {
 	return s.Add(EntityPriority, p)
 }
 
-func (s *Storage) GetMarketPriority() (p *map[blockatlas.MarketPriority]string, err error) {
+func (s *Storage) GetMarketPriority() (p *map[int]string, err error) {
 	err = s.GetValue(EntityPriority, p)
 	return
 }

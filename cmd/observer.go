@@ -19,10 +19,9 @@ var observerCmd = cobra.Command{
 }
 
 func runObserver(_ *cobra.Command, _ []string) {
-	if !Storage.IsReady() {
+	if !viper.GetBool("observer.enabled") {
 		logger.Fatal("Observer is not enabled")
 	}
-
 	if len(platform.BlockAPIs) == 0 {
 		logger.Fatal("No APIs to observe")
 	}

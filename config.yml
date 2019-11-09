@@ -13,6 +13,14 @@ gin:
 #sentry:
 #  dsn: https://xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx@sentry.io/xxxxxxx
 
+# The market watcher
+market:
+  enabled: true
+  auth: test
+
+storage:
+  redis: redis://localhost:6379
+
 # The transaction watcher
 observer:
   enabled: false
