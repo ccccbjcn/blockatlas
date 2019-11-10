@@ -5,7 +5,6 @@ import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
-	"github.com/trustwallet/blockatlas/storage"
 	"strconv"
 	"time"
 )
@@ -22,23 +21,23 @@ type Market struct {
 	provider.Market
 }
 
-func InitMarket(storage storage.Market) *Market {
+func InitMarket() provider.Provider {
+	api := "https://dex.binance.org/api/v1/ticker/24hr?limit=1000"
 	m := &Market{
 		Market: provider.Market{
-			Id:      "dex",
-			Name:    "Binance Dex",
-			URL:     "https://www.binance.org/",
-			Api:     "https://dex.binance.org/api/v1/ticker/24hr?limit=1000",
-			Storage: storage,
+			Id:         "dex",
+			Name:       "Binance Dex",
+			URL:        "https://www.binance.org/",
+			Request:    blockatlas.InitClient(api),
+			UpdateTime: time.Second * 10,
 		},
 	}
-	m.Market.GetData = m.GetData
 	return m
 }
 
 func (p *Market) GetData() ([]blockatlas.Ticker, error) {
 	var prices []CoinPrice
-	err := p.Client.Get(&prices, "", nil)
+	err := p.Get(&prices, "", nil)
 	if err != nil {
 		return nil, err
 	}
