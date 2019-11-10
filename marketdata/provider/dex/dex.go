@@ -9,14 +9,6 @@ import (
 	"time"
 )
 
-type CoinPrice struct {
-	Symbol         string `json:"symbol"`
-	BaseAssetName  string `json:"baseAssetName"`
-	QuoteAssetName string `json:"quoteAssetName"`
-	PriceChange    string `json:"priceChange"`
-	LastPrice      string `json:"lastPrice"`
-}
-
 type Market struct {
 	provider.Market
 }
