@@ -5,6 +5,7 @@ import (
 	"github.com/trustwallet/blockatlas/marketdata/provider"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/logger"
+	"net/url"
 	"time"
 )
 
@@ -13,14 +14,13 @@ type Market struct {
 }
 
 func InitMarket() provider.Provider {
-	api := "https://pro-api.coinmarketcap.com/v1/cryptocurrency/listings/latest?limit=1000&convert=BTC"
 	m := &Market{
 		Market: provider.Market{
 			Id:         "cmc",
 			Name:       "CoinMarketCap",
 			URL:        "https://coinmarketcap.com/",
-			Request:    blockatlas.InitClient(api),
-			UpdateTime: time.Second * 1,
+			Request:    blockatlas.InitClient("https://pro-api.coinmarketcap.com"),
+			UpdateTime: time.Second * 5,
 		},
 	}
 	m.Headers["X-CMC_PRO_API_KEY"] = viper.GetString("market.cmc_api_key")
@@ -29,7 +29,7 @@ func InitMarket() provider.Provider {
 
 func (p *Market) GetData() ([]blockatlas.Ticker, error) {
 	var prices CoinPrices
-	err := p.Get(&prices, "", nil)
+	err := p.Get(&prices, "v1/cryptocurrency/listings/latest", url.Values{"limit": {"1000"}, "convert": {"BTC"}})
 	if err != nil {
 		return nil, err
 	}
