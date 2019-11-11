@@ -14,7 +14,7 @@ import (
 type TickerRequest struct {
 	Currency string `json:"currency"`
 	Market   string `json:"market,omitempty"`
-	Coins    []Coin `json:"coins"`
+	Assets   []Coin `json:"assets"`
 }
 
 type Coin struct {
@@ -90,16 +90,14 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 			ginutils.ErrorResponse(c).Message(err.Error()).Render()
 			return
 		}
-
-		currency := c.DefaultQuery("currency", "USD")
-		rate, err := storage.GetRate(currency)
+		rate, err := storage.GetRate(md.Currency)
 		if err != nil {
 			ginutils.RenderError(c, http.StatusInternalServerError, "Invalid currency")
 			return
 		}
 
 		tickers := make(blockatlas.Tickers, 0)
-		for _, coinRequest := range md.Coins {
+		for _, coinRequest := range md.Assets {
 			coinObj := coin.Coins[coinRequest.Coin]
 			r, err := storage.GetTicker(md.Market, coinObj.Symbol, coinRequest.TokenId)
 			if err != nil {
@@ -108,6 +106,6 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 			r.ApplyRate(rate.Rate)
 			tickers = append(tickers, r)
 		}
-		ginutils.RenderSuccess(c, blockatlas.TickerResponse{Currency: currency, Result: tickers})
+		ginutils.RenderSuccess(c, blockatlas.TickerResponse{Currency: md.Currency, Result: tickers})
 	}
 }
