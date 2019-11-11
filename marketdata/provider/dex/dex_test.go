@@ -11,12 +11,12 @@ func TestNormalizeTickers(t *testing.T) {
 	tests := []struct {
 		name        string
 		prices      []CoinPrice
-		wantTickers []blockatlas.Ticker
+		wantTickers blockatlas.Tickers
 	}{
 		{
 			name:   "",
 			prices: []CoinPrice{},
-			wantTickers: []blockatlas.Ticker{
+			wantTickers: blockatlas.Tickers{
 				{Coin: "BTC", CoinType: blockatlas.TypeCoin, Price: blockatlas.TickerPrice{Value: 111, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
 				{Coin: "ETH", TokenId: "HT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 222, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},
 				{Coin: "OMNI", TokenId: "USDT", CoinType: blockatlas.TypeToken, Price: blockatlas.TickerPrice{Value: 333, Change24h: float64(time.Now().Unix())}, LastUpdate: time.Now()},

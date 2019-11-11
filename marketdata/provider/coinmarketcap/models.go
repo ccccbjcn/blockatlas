@@ -28,8 +28,8 @@ type Data struct {
 }
 
 type Quote struct {
-	BTC struct {
-		Price            float64 `json:"token_address"`
+	USD struct {
+		Price            float64 `json:"price"`
 		PercentChange24h float64 `json:"percent_change_24h"`
-	} `json:"BTC"`
+	} `json:"USD"`
 }

@@ -2,6 +2,7 @@ package storage
 
 import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
+	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
 	"strings"
 )
@@ -22,23 +23,23 @@ func (s *Storage) GetMarketPriority() (p *map[int]string, err error) {
 
 func (s *Storage) SaveTicker(entity string, coin blockatlas.Ticker) error {
 	cd, err := s.GetTicker(entity, coin.Coin, coin.TokenId)
-	if err == nil && cd != nil {
+	if err == nil {
 		if cd.LastUpdate.After(coin.LastUpdate) {
-			return err
+			return errors.E("ticker is outdated")
 		}
 	}
 	hm := createHashMap(coin.Coin, coin.TokenId)
 	return s.AddHM(entity, hm, coin)
 }
 
-func (s *Storage) GetTicker(entity, coin, token string) (*blockatlas.Ticker, error) {
+func (s *Storage) GetTicker(entity, coin, token string) (blockatlas.Ticker, error) {
 	hm := createHashMap(coin, token)
 	var cd blockatlas.Ticker
 	err := s.GetHMValue(entity, hm, &cd)
 	if err != nil {
-		return nil, err
+		return blockatlas.Ticker{}, err
 	}
-	return &cd, nil
+	return cd, nil
 }
 
 func (s *Storage) SaveRates(rates []blockatlas.Rate) {
@@ -55,7 +56,7 @@ func (s *Storage) SaveRates(rates []blockatlas.Rate) {
 }
 
 func (s *Storage) GetRate(currency string) (rate *blockatlas.Rate, err error) {
-	err = s.GetHMValue(EntityRates, currency, rate)
+	err = s.GetHMValue(EntityRates, currency, &rate)
 	return
 }
 

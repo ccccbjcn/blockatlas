@@ -50,6 +50,7 @@ func scheduleRun(storage storage.Market, p provider.Provider, c *cron.Cron) {
 	err = c.AddFunc(spec, func() {
 		processBackoff(storage, p)
 	})
+	processBackoff(storage, p)
 	if err != nil {
 		logger.Error(err, "AddFunc")
 	}

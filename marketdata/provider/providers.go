@@ -13,5 +13,5 @@ type Provider interface {
 	GetName() string
 	GetId() string
 	GetUpdateTime() time.Duration
-	GetData() ([]blockatlas.Ticker, error)
+	GetData() (blockatlas.Tickers, error)
 }

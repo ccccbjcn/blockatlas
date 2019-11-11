@@ -13,7 +13,7 @@ const (
 	backoffValue = 2
 )
 
-func Start(storage storage.Rates) error {
+func Start(storage storage.Market) error {
 	f := initFixer()
 	c := cron.New()
 	t := f.UpdateTime.Seconds()
@@ -28,7 +28,7 @@ func Start(storage storage.Rates) error {
 	return nil
 }
 
-func processBackoff(storage storage.Rates, f *Fixer) {
+func processBackoff(storage storage.Market, f *Fixer) {
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = backoffValue * time.Minute
 	r := func() error {

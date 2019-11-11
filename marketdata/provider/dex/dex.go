@@ -27,7 +27,7 @@ func InitMarket() provider.Provider {
 	return m
 }
 
-func (p *Market) GetData() ([]blockatlas.Ticker, error) {
+func (p *Market) GetData() (blockatlas.Tickers, error) {
 	var prices []CoinPrice
 	err := p.Get(&prices, "v1/ticker/24hr", url.Values{"limit": {"1000"}})
 	if err != nil {
@@ -58,7 +58,7 @@ func normalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
 	}, nil
 }
 
-func normalizeTickers(prices []CoinPrice) (tickers []blockatlas.Ticker) {
+func normalizeTickers(prices []CoinPrice) (tickers blockatlas.Tickers) {
 	for _, price := range prices {
 		t, err := normalizeTicker(price)
 		if err != nil {
