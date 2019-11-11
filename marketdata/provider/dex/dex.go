@@ -33,18 +33,18 @@ func (p *Market) GetData() ([]blockatlas.Ticker, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NormalizeTickers(prices), nil
+	return normalizeTickers(prices), nil
 }
 
-func NormalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
+func normalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
 	value, err := strconv.ParseFloat(price.LastPrice, 64)
 	if err != nil {
-		return nil, errors.E(err, "NormalizeTicker parse value error",
+		return nil, errors.E(err, "normalizeTicker parse value error",
 			errors.Params{"LastPrice": price.LastPrice, "Symbol": price.Symbol})
 	}
 	value24h, err := strconv.ParseFloat(price.PriceChange, 64)
 	if err != nil {
-		return nil, errors.E(err, "NormalizeTicker parse value24h error",
+		return nil, errors.E(err, "normalizeTicker parse value24h error",
 			errors.Params{"PriceChange": price.PriceChange, "Symbol": price.Symbol})
 	}
 	return &blockatlas.Ticker{
@@ -58,9 +58,9 @@ func NormalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
 	}, nil
 }
 
-func NormalizeTickers(prices []CoinPrice) (tickers []blockatlas.Ticker) {
+func normalizeTickers(prices []CoinPrice) (tickers []blockatlas.Ticker) {
 	for _, price := range prices {
-		t, err := NormalizeTicker(price)
+		t, err := normalizeTicker(price)
 		if err != nil {
 			logger.Error(err)
 			continue

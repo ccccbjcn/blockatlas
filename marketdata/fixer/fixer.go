@@ -13,7 +13,7 @@ type Fixer struct {
 	UpdateTime time.Duration
 }
 
-func InitFixer() *Fixer {
+func initFixer() *Fixer {
 	return &Fixer{
 		Request:    blockatlas.InitClient(viper.GetString("market.fixer_api")),
 		APIKey:     viper.GetString("market.fixer_key"),

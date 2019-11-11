@@ -14,7 +14,7 @@ import (
 )
 
 const (
-	backoffValue = 3
+	backoffValue = 2
 )
 
 func InitProviders(storage storage.Market) {
@@ -65,11 +65,11 @@ func processBackoff(storage storage.Market, p provider.Provider) {
 	}
 
 	n := func(err error, t time.Duration) {
-		logger.Error(err, "process Backoff", logger.Params{"Duration": t.String()})
+		logger.Error(err, "process backoff market", logger.Params{"Duration": t.String()})
 	}
 	err := backoff.RetryNotify(r, b, n)
 	if err != nil {
-		logger.Error(err, "ProcessBackoff")
+		logger.Error(err, "Market ProcessBackoff")
 	}
 }
 

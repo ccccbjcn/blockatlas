@@ -10,11 +10,11 @@ import (
 )
 
 const (
-	backoffValue = 3
+	backoffValue = 2
 )
 
 func Start(storage storage.Rates) error {
-	f := InitFixer()
+	f := initFixer()
 	c := cron.New()
 	t := f.UpdateTime.Seconds()
 	spec := fmt.Sprintf("@every %ds", uint64(t))
@@ -42,10 +42,10 @@ func processBackoff(storage storage.Rates, f *Fixer) {
 	}
 
 	n := func(err error, t time.Duration) {
-		logger.Error(err, "process Backoff", logger.Params{"Duration": t.String()})
+		logger.Error(err, "process backoff fixer", logger.Params{"Duration": t.String()})
 	}
 	err := backoff.RetryNotify(r, b, n)
 	if err != nil {
-		logger.Error(err, "ProcessBackoff")
+		logger.Error(err, "Fixer ProcessBackoff")
 	}
 }
