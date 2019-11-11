@@ -23,3 +23,9 @@ type TickerPrice struct {
 	Value     float64 `json:"value"`
 	Change24h float64 `json:"change_24h"`
 }
+
+type Rate struct {
+	Currency  string  `json:"currency"`
+	Rate      float64 `json:"rate"`
+	Timestamp uint64  `json:"timestamp"`
+}

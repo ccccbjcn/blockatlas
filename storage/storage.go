@@ -35,3 +35,8 @@ type Market interface {
 	GetTicker(entity, coin, token string) (*blockatlas.Ticker, error)
 	SaveMarketPriority(p map[int]string) error
 }
+
+type Rates interface {
+	SaveRates(rates []blockatlas.Rate)
+	GetRate(currency string) (*blockatlas.Rate, error)
+}

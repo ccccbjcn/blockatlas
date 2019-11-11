@@ -18,19 +18,18 @@ const (
 )
 
 func InitProviders(storage storage.Market) {
-	AddManyMarketData(storage,
+	addManyMarketData(storage,
 		provider.Providers{
 			0: dex.InitMarket(),
 			1: cmc.InitMarket(),
 		})
-
 }
 
-func AddManyMarketData(storage storage.Market, ps provider.Providers) {
+func addManyMarketData(storage storage.Market, ps provider.Providers) {
 	c := cron.New()
 	priorityList := make(map[int]string)
 	for priority, p := range ps {
-		ScheduleRun(storage, p, c)
+		scheduleRun(storage, p, c)
 		priorityList[int(priority)] = p.GetId()
 	}
 	err := storage.SaveMarketPriority(priorityList)
@@ -38,10 +37,9 @@ func AddManyMarketData(storage storage.Market, ps provider.Providers) {
 		logger.Error(err, "SaveMarketPriority", logger.Params{"priorityList": priorityList})
 	}
 	c.Start()
-	<-make(chan bool)
 }
 
-func ScheduleRun(storage storage.Market, p provider.Provider, c *cron.Cron) {
+func scheduleRun(storage storage.Market, p provider.Provider, c *cron.Cron) {
 	err := p.Init()
 	if err != nil {
 		logger.Error(err, "Init Provider Error", logger.Params{"provider": p.GetId()})
@@ -50,7 +48,7 @@ func ScheduleRun(storage storage.Market, p provider.Provider, c *cron.Cron) {
 	t := p.GetUpdateTime().Seconds()
 	spec := fmt.Sprintf("@every %ds", uint64(t))
 	err = c.AddFunc(spec, func() {
-		ProcessBackoff(storage, p)
+		processBackoff(storage, p)
 	})
 	if err != nil {
 		logger.Error(err, "AddFunc")
@@ -59,11 +57,11 @@ func ScheduleRun(storage storage.Market, p provider.Provider, c *cron.Cron) {
 
 // processBackoff make a exponential backoff for market run
 // errors, increasing the retry in a exponential period for each attempt.
-func ProcessBackoff(storage storage.Market, p provider.Provider) {
+func processBackoff(storage storage.Market, p provider.Provider) {
 	b := backoff.NewExponentialBackOff()
 	b.MaxElapsedTime = backoffValue * time.Minute
 	r := func() error {
-		return Run(storage, p)
+		return run(storage, p)
 	}
 
 	n := func(err error, t time.Duration) {
@@ -75,7 +73,7 @@ func ProcessBackoff(storage storage.Market, p provider.Provider) {
 	}
 }
 
-func Run(storage storage.Market, p provider.Provider) error {
+func run(storage storage.Market, p provider.Provider) error {
 	logger.Info("Starting market data task...", logger.Params{"Provider": p.GetName(), "ProviderId": p.GetId()})
 	data, err := p.GetData()
 	if err != nil {

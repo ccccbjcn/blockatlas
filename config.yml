@@ -17,6 +17,9 @@ gin:
 market:
   enabled: true
   auth: test
+  cmc_api_key:
+  fixer_api: https://data.fixer.io/api
+  fixer_key: 
 
 storage:
   redis: redis://localhost:6379

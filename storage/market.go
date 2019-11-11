@@ -2,11 +2,13 @@ package storage
 
 import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
+	"github.com/trustwallet/blockatlas/pkg/logger"
 	"strings"
 )
 
 const (
 	EntityPriority = "market_priority"
+	EntityRates    = "currencies_rates"
 )
 
 func (s *Storage) SaveMarketPriority(p map[int]string) error {
@@ -37,6 +39,24 @@ func (s *Storage) GetTicker(entity, coin, token string) (*blockatlas.Ticker, err
 		return nil, err
 	}
 	return &cd, nil
+}
+
+func (s *Storage) SaveRates(rates []blockatlas.Rate) {
+	for _, rate := range rates {
+		r, err := s.GetRate(rate.Currency)
+		if err == nil && rate.Timestamp < r.Timestamp {
+			return
+		}
+		err = s.AddHM(EntityRates, rate.Currency, &rate)
+		if err != nil {
+			logger.Error(err, "SaveRates", logger.Params{"rate": rate})
+		}
+	}
+}
+
+func (s *Storage) GetRate(currency string) (rate *blockatlas.Rate, err error) {
+	err = s.GetHMValue(EntityRates, currency, rate)
+	return
 }
 
 func createHashMap(coin, token string) string {

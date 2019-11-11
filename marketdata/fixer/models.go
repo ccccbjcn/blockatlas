@@ -1,9 +1,11 @@
 package fixer
 
-import "time"
+import (
+	"time"
+)
 
-type LatestRatesResponse struct {
-	Timestamp int                `json:"timestamp"`
+type Latest struct {
+	Timestamp uint64             `json:"timestamp"`
 	Rates     map[string]float64 `json:"rates"`
 	UpdatedAt time.Time          `json:"updated_at"`
 }
