@@ -29,7 +29,7 @@ func InitMarket() provider.Provider {
 
 func (p *Market) GetData() ([]blockatlas.Ticker, error) {
 	var prices CoinPrices
-	err := p.Get(&prices, "v1/cryptocurrency/listings/latest", url.Values{"limit": {"1000"}, "convert": {"BTC"}})
+	err := p.Get(&prices, "v1/cryptocurrency/listings/latest", url.Values{"limit": {"4000"}, "convert": {"BTC"}})
 	if err != nil {
 		return nil, err
 	}
