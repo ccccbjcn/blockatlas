@@ -33,9 +33,10 @@ type TickerPrice struct {
 type Rate struct {
 	Currency  string  `json:"currency"`
 	Rate      float64 `json:"rate"`
-	Timestamp uint64  `json:"timestamp"`
+	Timestamp int64   `json:"timestamp"`
 }
 
+type Rates []Rate
 type Tickers []Ticker
 
 func (ts Tickers) ApplyRate(rate float64) {

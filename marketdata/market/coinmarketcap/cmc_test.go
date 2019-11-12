@@ -26,8 +26,8 @@ func TestNormalizeTickers(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			if gotTickers := normalizeTickers(tt.prices); !reflect.DeepEqual(gotTickers, tt.wantTickers) {
-				t.Errorf("normalizeTickers() = %v, want %v", gotTickers, tt.wantTickers)
+			if gotTickers := normalizeData(tt.prices); !reflect.DeepEqual(gotTickers, tt.wantTickers) {
+				t.Errorf("normalizeData() = %v, want %v", gotTickers, tt.wantTickers)
 			}
 		})
 	}

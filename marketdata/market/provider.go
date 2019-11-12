@@ -1,12 +1,12 @@
-package provider
+package market
 
 import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"time"
 )
 
-type MarketPriority int
-type Providers map[MarketPriority]Provider
+type Priority int
+type Providers map[Priority]Provider
 
 type Provider interface {
 	Init() error
@@ -14,4 +14,5 @@ type Provider interface {
 	GetId() string
 	GetUpdateTime() time.Duration
 	GetData() (blockatlas.Tickers, error)
+	GetType() string
 }

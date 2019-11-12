@@ -20,7 +20,8 @@ type Coin struct {
 
 type Data struct {
 	Coin
-	Platform *struct {
+	LastUpdated time.Time `json:"last_updated"`
+	Platform    *struct {
 		Coin
 		TokenAddress string `json:"token_address"`
 	} `json:"platform"`

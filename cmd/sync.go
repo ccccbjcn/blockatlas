@@ -2,9 +2,7 @@ package cmd
 
 import (
 	"github.com/spf13/cobra"
-	market "github.com/trustwallet/blockatlas/marketdata"
-	"github.com/trustwallet/blockatlas/marketdata/fixer"
-	"github.com/trustwallet/blockatlas/pkg/logger"
+	"github.com/trustwallet/blockatlas/marketdata"
 )
 
 var syncCmd = &cobra.Command{
@@ -14,11 +12,8 @@ var syncCmd = &cobra.Command{
 }
 
 func syncMarketData(cmd *cobra.Command, args []string) {
-	market.InitProviders(Storage)
-	err := fixer.Start(Storage)
-	if err != nil {
-		logger.Error(err, "fixer start error")
-	}
+	marketdata.InitMarkets(Storage)
+	marketdata.InitRates(Storage)
 	<-make(chan bool)
 }
 

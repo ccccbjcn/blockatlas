@@ -42,7 +42,7 @@ func (s *Storage) GetTicker(entity, coin, token string) (blockatlas.Ticker, erro
 	return cd, nil
 }
 
-func (s *Storage) SaveRates(rates []blockatlas.Rate) {
+func (s *Storage) SaveRates(rates blockatlas.Rates) {
 	for _, rate := range rates {
 		r, err := s.GetRate(rate.Currency)
 		if err == nil && rate.Timestamp < r.Timestamp {

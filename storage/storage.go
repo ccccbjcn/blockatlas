@@ -34,6 +34,6 @@ type Market interface {
 	SaveTicker(entity string, coin blockatlas.Ticker) error
 	GetTicker(entity, coin, token string) (blockatlas.Ticker, error)
 	SaveMarketPriority(p map[int]string) error
-	SaveRates(rates []blockatlas.Rate)
+	SaveRates(rates blockatlas.Rates)
 	GetRate(currency string) (*blockatlas.Rate, error)
 }

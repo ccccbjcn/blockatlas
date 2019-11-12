@@ -1,4 +1,4 @@
-package provider
+package market
 
 import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
@@ -27,12 +27,16 @@ func (m *Market) GetId() string {
 	return m.Id
 }
 
+func (m *Market) GetType() string {
+	return "market-data"
+}
+
 func (m *Market) GetUpdateTime() time.Duration {
 	return m.UpdateTime
 }
 
 func (m *Market) Init() error {
-	logger.Info("Init Provider", logger.Params{"provider": m.GetId()})
+	logger.Info("Init Provider", logger.Params{"market": m.GetId()})
 	if len(m.Id) == 0 {
 		return errors.E("Provider: Id cannot be empty")
 	}

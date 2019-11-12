@@ -1,7 +1,7 @@
 package dex
 
 import (
-	"github.com/trustwallet/blockatlas/marketdata/provider"
+	"github.com/trustwallet/blockatlas/marketdata/market"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
@@ -11,12 +11,12 @@ import (
 )
 
 type Market struct {
-	provider.Market
+	market.Market
 }
 
-func InitMarket() provider.Provider {
+func InitMarket() market.Provider {
 	m := &Market{
-		Market: provider.Market{
+		Market: market.Market{
 			Id:         "dex",
 			Name:       "Binance Dex",
 			URL:        "https://www.binance.org/",

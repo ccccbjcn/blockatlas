@@ -2,7 +2,7 @@ package cmc
 
 import (
 	"github.com/spf13/viper"
-	"github.com/trustwallet/blockatlas/marketdata/provider"
+	"github.com/trustwallet/blockatlas/marketdata/market"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/logger"
 	"net/url"
@@ -10,17 +10,17 @@ import (
 )
 
 type Market struct {
-	provider.Market
+	market.Market
 }
 
-func InitMarket() provider.Provider {
+func InitMarket() market.Provider {
 	m := &Market{
-		Market: provider.Market{
+		Market: market.Market{
 			Id:         "cmc",
 			Name:       "CoinMarketCap",
 			URL:        "https://coinmarketcap.com/",
-			Request:    blockatlas.InitClient("https://pro-api.coinmarketcap.com"),
-			UpdateTime: time.Second * 5,
+			Request:    blockatlas.InitClient(viper.GetString("market.cmc_api")),
+			UpdateTime: time.Second * 30,
 		},
 	}
 	m.Headers["X-CMC_PRO_API_KEY"] = viper.GetString("market.cmc_api_key")
@@ -33,7 +33,7 @@ func (p *Market) GetData() (blockatlas.Tickers, error) {
 	if err != nil {
 		return nil, err
 	}
-	return normalizeTickers(prices), nil
+	return normalizeData(prices), nil
 }
 
 func normalizeTicker(price Data) (*blockatlas.Ticker, error) {
@@ -60,7 +60,7 @@ func normalizeTicker(price Data) (*blockatlas.Ticker, error) {
 	}, nil
 }
 
-func normalizeTickers(prices CoinPrices) (tickers blockatlas.Tickers) {
+func normalizeData(prices CoinPrices) (tickers blockatlas.Tickers) {
 	for _, price := range prices.Data {
 		t, err := normalizeTicker(price)
 		if err != nil {
