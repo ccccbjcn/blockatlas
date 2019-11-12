@@ -17,7 +17,7 @@ const (
 )
 
 type Provider interface {
-	Init() error
+	Init(storage.Market) error
 	GetId() string
 	GetType() string
 	GetUpdateTime() time.Duration
@@ -42,7 +42,7 @@ func processBackoff(storage storage.Market, md Provider) {
 }
 
 func scheduleTasks(storage storage.Market, md Provider, c *cron.Cron) {
-	err := md.Init()
+	err := md.Init(storage)
 	if err != nil {
 		logger.Error(err, "Init Market Error", logger.Params{"Type": md.GetType(), "Market": md.GetId()})
 		return
@@ -65,7 +65,6 @@ func run(storage storage.Market, md Provider) error {
 		return runMarket(storage, m)
 	case rate.Provider:
 		return runRate(storage, m)
-
 	}
 	return errors.E("invalid market interface")
 }

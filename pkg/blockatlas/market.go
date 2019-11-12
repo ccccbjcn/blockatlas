@@ -28,6 +28,7 @@ type Ticker struct {
 type TickerPrice struct {
 	Value     float64 `json:"value"`
 	Change24h float64 `json:"change_24h"`
+	Currency  string  `json:"currency"`
 }
 
 type Rate struct {
@@ -37,14 +38,18 @@ type Rate struct {
 }
 
 type Rates []Rate
-type Tickers []Ticker
+type Tickers []*Ticker
 
-func (ts Tickers) ApplyRate(rate float64) {
+func (ts Tickers) ApplyRate(rate float64, currency string) {
 	for _, t := range ts {
-		t.Price.Value *= rate
+		t.ApplyRate(rate, currency)
 	}
 }
 
-func (t *Ticker) ApplyRate(rate float64) {
+func (t *Ticker) ApplyRate(rate float64, currency string) {
+	if t.Price.Currency == currency {
+		return
+	}
 	t.Price.Value *= rate
+	t.Price.Currency = currency
 }

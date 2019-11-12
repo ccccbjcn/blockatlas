@@ -12,8 +12,8 @@ var syncCmd = &cobra.Command{
 }
 
 func syncMarketData(cmd *cobra.Command, args []string) {
-	marketdata.InitMarkets(Storage)
 	marketdata.InitRates(Storage)
+	marketdata.InitMarkets(Storage)
 	<-make(chan bool)
 }
 

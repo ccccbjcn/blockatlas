@@ -66,7 +66,7 @@ func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 			ginutils.RenderError(c, http.StatusInternalServerError, err.Error())
 			return
 		}
-		result.ApplyRate(rate.Rate)
+		result.ApplyRate(rate.Rate, currency)
 		ginutils.RenderSuccess(c, result)
 	}
 }
@@ -103,7 +103,7 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 			if err != nil {
 				r.Error = err.Error()
 			}
-			r.ApplyRate(rate.Rate)
+			r.ApplyRate(rate.Rate, md.Currency)
 			tickers = append(tickers, r)
 		}
 		ginutils.RenderSuccess(c, blockatlas.TickerResponse{Currency: md.Currency, Result: tickers})

@@ -21,7 +21,7 @@ func (s *Storage) GetMarketPriority() (p *map[int]string, err error) {
 	return
 }
 
-func (s *Storage) SaveTicker(entity string, coin blockatlas.Ticker) error {
+func (s *Storage) SaveTicker(entity string, coin *blockatlas.Ticker) error {
 	cd, err := s.GetTicker(entity, coin.Coin, coin.TokenId)
 	if err == nil {
 		if cd.LastUpdate.After(coin.LastUpdate) {
@@ -32,12 +32,12 @@ func (s *Storage) SaveTicker(entity string, coin blockatlas.Ticker) error {
 	return s.AddHM(entity, hm, coin)
 }
 
-func (s *Storage) GetTicker(entity, coin, token string) (blockatlas.Ticker, error) {
+func (s *Storage) GetTicker(entity, coin, token string) (*blockatlas.Ticker, error) {
 	hm := createHashMap(coin, token)
-	var cd blockatlas.Ticker
-	err := s.GetHMValue(entity, hm, &cd)
+	var cd *blockatlas.Ticker
+	err := s.GetHMValue(entity, hm, cd)
 	if err != nil {
-		return blockatlas.Ticker{}, err
+		return nil, err
 	}
 	return cd, nil
 }

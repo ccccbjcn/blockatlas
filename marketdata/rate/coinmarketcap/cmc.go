@@ -41,7 +41,7 @@ func normalizeRates(prices CoinPrices) (rates blockatlas.Rates) {
 		}
 		rates = append(rates, blockatlas.Rate{
 			Currency:  price.Symbol,
-			Rate:      price.Quote.USD.Price,
+			Rate:      1.0 / price.Quote.USD.Price,
 			Timestamp: price.LastUpdated.Unix(),
 		})
 	}

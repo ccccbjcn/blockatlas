@@ -31,8 +31,8 @@ type Addresses interface {
 }
 
 type Market interface {
-	SaveTicker(entity string, coin blockatlas.Ticker) error
-	GetTicker(entity, coin, token string) (blockatlas.Ticker, error)
+	SaveTicker(entity string, coin *blockatlas.Ticker) error
+	GetTicker(entity, coin, token string) (*blockatlas.Ticker, error)
 	SaveMarketPriority(p map[int]string) error
 	SaveRates(rates blockatlas.Rates)
 	GetRate(currency string) (*blockatlas.Rate, error)

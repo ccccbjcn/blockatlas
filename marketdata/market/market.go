@@ -4,6 +4,7 @@ import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
+	"github.com/trustwallet/blockatlas/storage"
 	"time"
 )
 
@@ -17,6 +18,7 @@ type Market struct {
 	Name       string
 	URL        string
 	UpdateTime time.Duration
+	Storage    storage.Market
 }
 
 func (m *Market) GetName() string {
@@ -35,14 +37,21 @@ func (m *Market) GetUpdateTime() time.Duration {
 	return m.UpdateTime
 }
 
-func (m *Market) Init() error {
+func (m *Market) Init(storage storage.Market) error {
 	logger.Info("Init Provider", logger.Params{"market": m.GetId()})
 	if len(m.Id) == 0 {
 		return errors.E("Provider: Id cannot be empty")
 	}
+
 	if len(m.Name) == 0 {
 		return errors.E("Provider: Name cannot be empty")
 	}
+
+	if storage == nil {
+		return errors.E("Provider: Storage cannot be nil")
+	}
+	m.Storage = storage
+
 	if m.UpdateTime == 0 {
 		m.UpdateTime = defaultUpdateTime
 	}

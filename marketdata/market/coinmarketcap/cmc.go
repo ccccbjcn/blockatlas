@@ -20,7 +20,7 @@ func InitMarket() market.Provider {
 			Name:       "CoinMarketCap",
 			URL:        "https://coinmarketcap.com/",
 			Request:    blockatlas.InitClient(viper.GetString("market.cmc_api")),
-			UpdateTime: time.Second * 30,
+			UpdateTime: time.Second * 3,
 		},
 	}
 	m.Headers["X-CMC_PRO_API_KEY"] = viper.GetString("market.cmc_api_key")
@@ -55,6 +55,7 @@ func normalizeTicker(price Data) (*blockatlas.Ticker, error) {
 		Price: blockatlas.TickerPrice{
 			Value:     price.Quote.USD.Price,
 			Change24h: value24h,
+			Currency:  "USD",
 		},
 		LastUpdate: time.Now(),
 	}, nil
@@ -67,7 +68,7 @@ func normalizeData(prices CoinPrices) (tickers blockatlas.Tickers) {
 			logger.Error(err)
 			continue
 		}
-		tickers = append(tickers, *t)
+		tickers = append(tickers, t)
 	}
 	return
 }
