@@ -9,6 +9,7 @@ import (
 	"github.com/trustwallet/blockatlas/storage"
 	"net/http"
 	"strconv"
+	"strings"
 )
 
 type TickerRequest struct {
@@ -52,14 +53,14 @@ func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 		token := c.Query("token")
 
 		currency := c.DefaultQuery("currency", "USD")
-		rate, err := storage.GetRate(currency)
+		rate, err := storage.GetRate(strings.ToUpper(currency))
 		if err != nil {
 			ginutils.RenderError(c, http.StatusInternalServerError, "Invalid currency")
 			return
 		}
 
 		coinObj := coin.Coins[uint(coinId)]
-		result, err := storage.GetTicker(coinObj.Symbol, token)
+		result, err := storage.GetTicker(coinObj.Symbol, strings.ToUpper(token))
 		if err != nil {
 			ginutils.RenderError(c, http.StatusInternalServerError, err.Error())
 			return
@@ -88,7 +89,7 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 			ginutils.ErrorResponse(c).Message(err.Error()).Render()
 			return
 		}
-		rate, err := storage.GetRate(md.Currency)
+		rate, err := storage.GetRate(strings.ToUpper(md.Currency))
 		if err != nil {
 			ginutils.RenderError(c, http.StatusInternalServerError, "Invalid currency")
 			return
@@ -96,14 +97,31 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 
 		tickers := make(blockatlas.Tickers, 0)
 		for _, coinRequest := range md.Assets {
-			coinObj := coin.Coins[coinRequest.Coin]
-			r, err := storage.GetTicker(coinObj.Symbol, coinRequest.TokenId)
-			if err != nil {
-				r.Error = err.Error()
+			r := emptyTicker(coinRequest)
+			coinObj, ok := coin.Coins[coinRequest.Coin]
+			if !ok {
+				r.Error = "invalid coin"
+				tickers = append(tickers, r)
+				continue
 			}
-			r.ApplyRate(rate.Rate, md.Currency)
+			r, err := storage.GetTicker(coinObj.Symbol, strings.ToUpper(coinRequest.TokenId))
+			if err != nil {
+				r = emptyTicker(coinRequest)
+				r.Error = err.Error()
+			} else {
+				r.Coin = coinRequest.Coin
+				r.ApplyRate(rate.Rate, md.Currency)
+			}
 			tickers = append(tickers, r)
 		}
+
 		ginutils.RenderSuccess(c, blockatlas.TickerResponse{Currency: md.Currency, Result: tickers})
+	}
+}
+
+func emptyTicker(coinRequest Coin) blockatlas.Ticker {
+	return blockatlas.Ticker{
+		Coin:    coinRequest.Coin,
+		TokenId: coinRequest.TokenId,
 	}
 }

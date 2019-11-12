@@ -6,6 +6,7 @@ import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
+	"math/big"
 	"net/url"
 	"strconv"
 	"time"
@@ -47,27 +48,28 @@ func (m *Market) GetData() (blockatlas.Tickers, error) {
 	return result, nil
 }
 
-func normalizeTicker(price CoinPrice, provider string) (*blockatlas.Ticker, error) {
+func normalizeTicker(price CoinPrice, provider string) (blockatlas.Ticker, error) {
 	if price.QuoteAssetName != quoteAsset {
-		return nil, errors.E("invalid quote asset",
+		return blockatlas.Ticker{}, errors.E("invalid quote asset",
 			errors.Params{"Symbol": price.BaseAssetName, "QuoteAsset": price.QuoteAssetName})
 	}
 	value, err := strconv.ParseFloat(price.LastPrice, 64)
 	if err != nil {
-		return nil, errors.E(err, "normalizeTicker parse value error",
+		return blockatlas.Ticker{}, errors.E(err, "normalizeTicker parse value error",
 			errors.Params{"LastPrice": price.LastPrice, "Symbol": price.BaseAssetName})
 	}
 	value24h, err := strconv.ParseFloat(price.PriceChange, 64)
 	if err != nil {
-		return nil, errors.E(err, "normalizeTicker parse value24h error",
+		return blockatlas.Ticker{}, errors.E(err, "normalizeTicker parse value24h error",
 			errors.Params{"PriceChange": price.PriceChange, "Symbol": price.BaseAssetName})
 	}
-	return &blockatlas.Ticker{
-		Coin:     price.BaseAssetName,
-		CoinType: blockatlas.TypeCoin,
+	return blockatlas.Ticker{
+		CoinName: price.QuoteAssetName,
+		CoinType: blockatlas.TypeToken,
+		TokenId:  price.BaseAssetName,
 		Price: blockatlas.TickerPrice{
-			Value:     value,
-			Change24h: value24h,
+			Value:     big.NewFloat(value),
+			Change24h: big.NewFloat(value24h),
 			Currency:  "BNB",
 			Provider:  provider,
 		},

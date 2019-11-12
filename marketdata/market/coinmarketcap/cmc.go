@@ -5,6 +5,7 @@ import (
 	"github.com/trustwallet/blockatlas/marketdata/market"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/logger"
+	"math/big"
 	"net/url"
 	"time"
 )
@@ -36,7 +37,7 @@ func (m *Market) GetData() (blockatlas.Tickers, error) {
 	return normalizeData(prices, m.GetId()), nil
 }
 
-func normalizeTicker(price Data, provider string) (*blockatlas.Ticker, error) {
+func normalizeTicker(price Data, provider string) (blockatlas.Ticker, error) {
 	value24h := percentageChange(price.Quote.USD.Price, price.Quote.USD.PercentChange24h)
 
 	tokenId := ""
@@ -48,13 +49,13 @@ func normalizeTicker(price Data, provider string) (*blockatlas.Ticker, error) {
 		tokenId = price.Symbol
 	}
 
-	return &blockatlas.Ticker{
-		Coin:     symbol,
+	return blockatlas.Ticker{
+		CoinName: symbol,
 		CoinType: coinType,
 		TokenId:  tokenId,
 		Price: blockatlas.TickerPrice{
-			Value:     price.Quote.USD.Price,
-			Change24h: value24h,
+			Value:     big.NewFloat(price.Quote.USD.Price),
+			Change24h: big.NewFloat(value24h),
 			Currency:  "USD",
 			Provider:  provider,
 		},

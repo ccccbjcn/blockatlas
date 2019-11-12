@@ -16,8 +16,8 @@ type ProviderList interface {
 	GetPriority(providerId string) int
 }
 
-func (s *Storage) SaveTicker(coin *blockatlas.Ticker, pl ProviderList) error {
-	cd, err := s.GetTicker(coin.Coin, coin.TokenId)
+func (s *Storage) SaveTicker(coin blockatlas.Ticker, pl ProviderList) error {
+	cd, err := s.GetTicker(coin.CoinName, coin.TokenId)
 	if err == nil {
 		if cd.LastUpdate.After(coin.LastUpdate) {
 			return errors.E("ticker is outdated")
@@ -29,18 +29,18 @@ func (s *Storage) SaveTicker(coin *blockatlas.Ticker, pl ProviderList) error {
 			return errors.E("ticker provider with less priority")
 		}
 	}
-	hm := createHashMap(coin.Coin, coin.TokenId)
+	hm := createHashMap(coin.CoinName, coin.TokenId)
 	return s.AddHM(EntityMarket, hm, coin)
 }
 
-func (s *Storage) GetTicker(coin, token string) (*blockatlas.Ticker, error) {
+func (s *Storage) GetTicker(coin, token string) (blockatlas.Ticker, error) {
 	hm := createHashMap(coin, token)
 	var cd *blockatlas.Ticker
 	err := s.GetHMValue(EntityMarket, hm, &cd)
 	if err != nil {
-		return nil, err
+		return blockatlas.Ticker{}, err
 	}
-	return cd, nil
+	return *cd, nil
 }
 
 func (s *Storage) SaveRates(rates blockatlas.Rates) {
@@ -63,7 +63,7 @@ func (s *Storage) GetRate(currency string) (rate *blockatlas.Rate, err error) {
 
 func createHashMap(coin, token string) string {
 	if len(token) == 0 {
-		return coin
+		return strings.ToUpper(coin)
 	}
-	return strings.Join([]string{coin, token}, "-")
+	return strings.ToUpper(strings.Join([]string{coin, token}, "_"))
 }
