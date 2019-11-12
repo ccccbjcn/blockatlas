@@ -19,7 +19,7 @@ type TickerResponse struct {
 
 type Ticker struct {
 	Coin       uint        `json:"coin"`
-	CoinName   string      `json:"coin_name"`
+	CoinName   string      `json:"coin_name,omitempty"`
 	TokenId    string      `json:"token_id,omitempty"`
 	CoinType   CoinType    `json:"type,omitempty"`
 	Price      TickerPrice `json:"price,omitempty"`
@@ -28,10 +28,10 @@ type Ticker struct {
 }
 
 type TickerPrice struct {
-	Value     *big.Float `json:"value"`
-	Change24h *big.Float `json:"change_24h"`
-	Currency  string     `json:"currency"`
-	Provider  string     `json:"provider"`
+	Value     *big.Float `json:"value,omitempty"`
+	Change24h *big.Float `json:"change_24h,omitempty"`
+	Currency  string     `json:"currency,omitempty"`
+	Provider  string     `json:"provider,omitempty"`
 }
 
 type Rate struct {
