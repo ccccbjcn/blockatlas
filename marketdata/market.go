@@ -10,12 +10,14 @@ import (
 	"github.com/trustwallet/blockatlas/storage"
 )
 
+var providers market.Providers
+
 func InitMarkets(storage storage.Market) {
-	addMarkets(storage,
-		market.Providers{
-			0: dex.InitMarket(),
-			1: cmc.InitMarket(),
-		})
+	providers = market.Providers{
+		0: dex.InitMarket(),
+		1: cmc.InitMarket(),
+	}
+	addMarkets(storage, providers)
 }
 
 func addMarkets(storage storage.Market, ps market.Providers) {
@@ -23,11 +25,7 @@ func addMarkets(storage storage.Market, ps market.Providers) {
 	priorityList := make(map[int]string)
 	for priority, p := range ps {
 		scheduleTasks(storage, p, c)
-		priorityList[int(priority)] = p.GetId()
-	}
-	err := storage.SaveMarketPriority(priorityList)
-	if err != nil {
-		logger.Error(err, "SaveMarketPriority", logger.Params{"priorityList": priorityList})
+		priorityList[priority] = p.GetId()
 	}
 	c.Start()
 }
@@ -38,7 +36,7 @@ func runMarket(storage storage.Market, p market.Provider) error {
 		return errors.E(err, "GetData")
 	}
 	for _, result := range data {
-		err = storage.SaveTicker(p.GetId(), result)
+		err = storage.SaveTicker(result, providers)
 		if err != nil {
 			logger.Error(errors.E(err, "SaveTicker",
 				errors.Params{"result": result}))

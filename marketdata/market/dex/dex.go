@@ -26,28 +26,28 @@ func InitMarket() market.Provider {
 			Name:       "Binance Dex",
 			URL:        "https://www.binance.org/",
 			Request:    blockatlas.InitClient(viper.GetString("market.dex_api")),
-			UpdateTime: time.Second * 1,
+			UpdateTime: time.Second * 30,
 		},
 	}
 	return m
 }
 
-func (p *Market) GetData() (blockatlas.Tickers, error) {
+func (m *Market) GetData() (blockatlas.Tickers, error) {
 	var prices []CoinPrice
-	err := p.Get(&prices, "v1/ticker/24hr", url.Values{"limit": {"1000"}})
+	err := m.Get(&prices, "v1/ticker/24hr", url.Values{"limit": {"1000"}})
 	if err != nil {
 		return nil, err
 	}
-	rate, err := p.Storage.GetRate(quoteAsset)
+	rate, err := m.Storage.GetRate(quoteAsset)
 	if err != nil {
 		return nil, errors.E(err, "rate not found", logger.Params{"asset": quoteAsset})
 	}
-	result := normalizeTickers(prices)
+	result := normalizeTickers(prices, m.GetId())
 	result.ApplyRate(1.0/rate.Rate, "USD")
 	return result, nil
 }
 
-func normalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
+func normalizeTicker(price CoinPrice, provider string) (*blockatlas.Ticker, error) {
 	if price.QuoteAssetName != quoteAsset {
 		return nil, errors.E("invalid quote asset",
 			errors.Params{"Symbol": price.BaseAssetName, "QuoteAsset": price.QuoteAssetName})
@@ -69,14 +69,15 @@ func normalizeTicker(price CoinPrice) (*blockatlas.Ticker, error) {
 			Value:     value,
 			Change24h: value24h,
 			Currency:  "BNB",
+			Provider:  provider,
 		},
 		LastUpdate: time.Now(),
 	}, nil
 }
 
-func normalizeTickers(prices []CoinPrice) (tickers blockatlas.Tickers) {
+func normalizeTickers(prices []CoinPrice, provider string) (tickers blockatlas.Tickers) {
 	for _, price := range prices {
-		t, err := normalizeTicker(price)
+		t, err := normalizeTicker(price, provider)
 		if err != nil {
 			continue
 		}

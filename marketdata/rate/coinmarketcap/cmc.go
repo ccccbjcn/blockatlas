@@ -17,7 +17,7 @@ func InitRate() rate.Provider {
 		Rate: rate.Rate{
 			Id:         "cmc",
 			Request:    blockatlas.InitClient(viper.GetString("market.cmc_api")),
-			UpdateTime: time.Second * 5,
+			UpdateTime: time.Second * 30,
 		},
 	}
 	cmc.Headers["X-CMC_PRO_API_KEY"] = viper.GetString("market.cmc_api_key")

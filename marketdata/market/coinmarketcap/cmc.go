@@ -20,23 +20,23 @@ func InitMarket() market.Provider {
 			Name:       "CoinMarketCap",
 			URL:        "https://coinmarketcap.com/",
 			Request:    blockatlas.InitClient(viper.GetString("market.cmc_api")),
-			UpdateTime: time.Second * 3,
+			UpdateTime: time.Second * 30,
 		},
 	}
 	m.Headers["X-CMC_PRO_API_KEY"] = viper.GetString("market.cmc_api_key")
 	return m
 }
 
-func (p *Market) GetData() (blockatlas.Tickers, error) {
+func (m *Market) GetData() (blockatlas.Tickers, error) {
 	var prices CoinPrices
-	err := p.Get(&prices, "v1/cryptocurrency/listings/latest", url.Values{"limit": {"5000"}, "convert": {"USD"}})
+	err := m.Get(&prices, "v1/cryptocurrency/listings/latest", url.Values{"limit": {"5000"}, "convert": {"USD"}})
 	if err != nil {
 		return nil, err
 	}
-	return normalizeData(prices), nil
+	return normalizeData(prices, m.GetId()), nil
 }
 
-func normalizeTicker(price Data) (*blockatlas.Ticker, error) {
+func normalizeTicker(price Data, provider string) (*blockatlas.Ticker, error) {
 	value24h := percentageChange(price.Quote.USD.Price, price.Quote.USD.PercentChange24h)
 
 	tokenId := ""
@@ -56,14 +56,15 @@ func normalizeTicker(price Data) (*blockatlas.Ticker, error) {
 			Value:     price.Quote.USD.Price,
 			Change24h: value24h,
 			Currency:  "USD",
+			Provider:  provider,
 		},
 		LastUpdate: time.Now(),
 	}, nil
 }
 
-func normalizeData(prices CoinPrices) (tickers blockatlas.Tickers) {
+func normalizeData(prices CoinPrices, provider string) (tickers blockatlas.Tickers) {
 	for _, price := range prices.Data {
-		t, err := normalizeTicker(price)
+		t, err := normalizeTicker(price, provider)
 		if err != nil {
 			logger.Error(err)
 			continue

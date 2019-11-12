@@ -5,9 +5,10 @@ import (
 	"github.com/trustwallet/blockatlas/marketdata"
 )
 
-var syncCmd = &cobra.Command{
+var syncCmd = cobra.Command{
 	Use:   "sync",
-	Short: "Sync all markets",
+	Short: "Sync all markets and rates",
+	Args:  cobra.NoArgs,
 	Run:   syncMarketData,
 }
 
@@ -18,5 +19,5 @@ func syncMarketData(cmd *cobra.Command, args []string) {
 }
 
 func init() {
-	rootCmd.AddCommand(syncCmd)
+	rootCmd.AddCommand(&syncCmd)
 }

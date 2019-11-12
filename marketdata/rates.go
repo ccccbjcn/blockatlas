@@ -11,11 +11,10 @@ import (
 )
 
 func InitRates(storage storage.Market) {
-	addRates(storage,
-		[]rate.Provider{
-			fixer.InitRate(),
-			cmc.InitRate(),
-		})
+	addRates(storage, []rate.Provider{
+		fixer.InitRate(),
+		cmc.InitRate(),
+	})
 }
 
 func addRates(storage storage.Market, rates []rate.Provider) {

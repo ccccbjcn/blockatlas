@@ -8,34 +8,35 @@ import (
 )
 
 const (
-	EntityPriority = "market_priority"
-	EntityRates    = "currencies_rates"
+	EntityRates  = "currencies_rates"
+	EntityMarket = "market"
 )
 
-func (s *Storage) SaveMarketPriority(p map[int]string) error {
-	return s.Add(EntityPriority, p)
+type ProviderList interface {
+	GetPriority(providerId string) int
 }
 
-func (s *Storage) GetMarketPriority() (p *map[int]string, err error) {
-	err = s.GetValue(EntityPriority, p)
-	return
-}
-
-func (s *Storage) SaveTicker(entity string, coin *blockatlas.Ticker) error {
-	cd, err := s.GetTicker(entity, coin.Coin, coin.TokenId)
+func (s *Storage) SaveTicker(coin *blockatlas.Ticker, pl ProviderList) error {
+	cd, err := s.GetTicker(coin.Coin, coin.TokenId)
 	if err == nil {
 		if cd.LastUpdate.After(coin.LastUpdate) {
 			return errors.E("ticker is outdated")
 		}
+
+		op := pl.GetPriority(cd.Price.Provider)
+		np := pl.GetPriority(coin.Price.Provider)
+		if np > op {
+			return errors.E("ticker provider with less priority")
+		}
 	}
 	hm := createHashMap(coin.Coin, coin.TokenId)
-	return s.AddHM(entity, hm, coin)
+	return s.AddHM(EntityMarket, hm, coin)
 }
 
-func (s *Storage) GetTicker(entity, coin, token string) (*blockatlas.Ticker, error) {
+func (s *Storage) GetTicker(coin, token string) (*blockatlas.Ticker, error) {
 	hm := createHashMap(coin, token)
 	var cd *blockatlas.Ticker
-	err := s.GetHMValue(entity, hm, cd)
+	err := s.GetHMValue(EntityMarket, hm, &cd)
 	if err != nil {
 		return nil, err
 	}

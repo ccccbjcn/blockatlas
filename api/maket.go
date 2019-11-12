@@ -13,7 +13,6 @@ import (
 
 type TickerRequest struct {
 	Currency string `json:"currency"`
-	Market   string `json:"market,omitempty"`
 	Assets   []Coin `json:"assets"`
 }
 
@@ -50,7 +49,6 @@ func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 			ginutils.RenderError(c, http.StatusInternalServerError, "Invalid coin")
 			return
 		}
-		market := c.DefaultQuery("market", "cmc")
 		token := c.Query("token")
 
 		currency := c.DefaultQuery("currency", "USD")
@@ -61,7 +59,7 @@ func getTickerHandler(storage storage.Market) func(c *gin.Context) {
 		}
 
 		coinObj := coin.Coins[uint(coinId)]
-		result, err := storage.GetTicker(market, coinObj.Symbol, token)
+		result, err := storage.GetTicker(coinObj.Symbol, token)
 		if err != nil {
 			ginutils.RenderError(c, http.StatusInternalServerError, err.Error())
 			return
@@ -85,7 +83,7 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 		return nil
 	}
 	return func(c *gin.Context) {
-		md := TickerRequest{Currency: "USD", Market: "cmc"}
+		md := TickerRequest{Currency: "USD"}
 		if err := c.BindJSON(&md); err != nil {
 			ginutils.ErrorResponse(c).Message(err.Error()).Render()
 			return
@@ -99,7 +97,7 @@ func getTickersHandler(storage storage.Market) func(c *gin.Context) {
 		tickers := make(blockatlas.Tickers, 0)
 		for _, coinRequest := range md.Assets {
 			coinObj := coin.Coins[coinRequest.Coin]
-			r, err := storage.GetTicker(md.Market, coinObj.Symbol, coinRequest.TokenId)
+			r, err := storage.GetTicker(coinObj.Symbol, coinRequest.TokenId)
 			if err != nil {
 				r.Error = err.Error()
 			}
