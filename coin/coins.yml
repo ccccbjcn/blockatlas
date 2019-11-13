@@ -344,3 +344,13 @@
   decimals: 8
   blockTime: 15000
   sampleAddress: 'D8NBg12kfW8uLjzCv7LYnPYCNhqvVtHaMQ'
+
+- id: 8964
+  symbol: NULS
+  handle: nuls
+  name: Nuls
+  decimals: 8
+  blockTime: 10000
+  sampleAddress: 'NsdtNvsfmPerWk4BhcapHTB3LptF8Sbe'
+
+
