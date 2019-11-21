@@ -2,173 +2,117 @@ package nuls
 
 import (
 	"encoding/json"
-	"strings"
+	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 )
 
-// Types of messages
-const (
-	MsgSend                        = "cosmos-sdk/MsgSend"
-	MsgMultiSend                   = "cosmos-sdk/MsgMultiSend"
-	MsgCreateValidator             = "cosmos-sdk/MsgCreateValidator"
-	MsgDelegate                    = "cosmos-sdk/MsgDelegate"
-	MsgUndelegate                  = "cosmos-sdk/MsgUndelegate"
-	MsgBeginRedelegate             = "cosmos-sdk/MsgBeginRedelegate"
-	MsgWithdrawDelegationReward    = "cosmos-sdk/MsgWithdrawDelegationReward"
-	MsgWithdrawValidatorCommission = "cosmos-sdk/MsgWithdrawValidatorCommission"
-	MsgSubmitProposal              = "cosmos-sdk/MsgSubmitProposal"
-	MsgDeposit                     = "cosmos-sdk/MsgDeposit"
-	MsgVote                        = "cosmos-sdk/MsgVote"
-	TextProposal                   = "cosmos-sdk/TextProposal"
-	MsgUnjail                      = "cosmos-sdk/MsgUnjail"
-)
+type Page struct {
+	Success bool   `json:"success"`
+	Error   string `json:"error,omitempty"`
+	Txs     []Tx   `json:"data"`
+}
 
-// Tx - Base transaction object. Always returned as part of an array
 type Tx struct {
-	Block string `json:"height"`
-	Date  string `json:"timestamp"`
-	ID    string `json:"txhash"`
-	Data  Data   `json:"tx"`
+	ID        string `json:"txID"`
+	BlockTime int64  `json:"block_timestamp"`
+	Data      TxData `json:"raw_data"`
 }
 
-type TxPage []Tx
-
-// Data - "tx" sub object
-type Data struct {
-	Contents Contents `json:"value"`
+type TxData struct {
+	Contracts []Contract `json:"contract"`
 }
 
-// Contents - amount, fee, and memo
-type Contents struct {
-	Message []Message `json:"msg"`
-	Fee     Fee       `json:"fee"`
-	Memo    string    `json:"memo"`
+type Contract struct {
+	Type      string      `json:"type"`
+	Parameter interface{} `json:"parameter"`
 }
 
-// Message - an array that holds multiple 'particulars' entries. Possibly used for multiple transfers in one transaction?
-type Message struct {
-	Type  string
-	Value interface{}
+type TransferContract struct {
+	Value TransferValue `json:"value"`
 }
 
-// MessageValueTransfer - from, to, and amount
-type MessageValueTransfer struct {
-	FromAddr string   `json:"from_address"`
-	ToAddr   string   `json:"to_address"`
-	Amount   []Amount `json:"amount,omitempty"`
+type TransferValue struct {
+	Amount       blockatlas.Amount `json:"amount"`
+	OwnerAddress string            `json:"owner_address"`
+	ToAddress    string            `json:"to_address"`
 }
 
-// MessageValueDelegate - from, to, and amount
-type MessageValueDelegate struct {
-	DelegatorAddr string `json:"delegator_address"`
-	ValidatorAddr string `json:"validator_address"`
-	Amount        Amount `json:"amount"`
+// Type for token transfer
+type TransferAssetContract struct {
+	Value TransferAssetValue `json:"value"`
 }
 
-// Fee - also references the "amount" struct
-type Fee struct {
-	FeeAmount []Amount `json:"amount"`
-}
-
-// Amount - the asset & quantity. Always seems to be enclosed in an array/list for some reason.
-// Perhaps used for multiple tokens transferred in a single sender/reciever transfer?
-type Amount struct {
-	Denom    string `json:"denom"`
-	Quantity string `json:"amount"`
-}
-
-// # Staking
-
-type CosmosCommission struct {
-	Rate string `json:"rate"`
-}
-
-type Validator struct {
-	Status     int              `json:"status"`
-	Address    string           `json:"operator_address"`
-	Commission CosmosCommission `json:"commission"`
-}
-
-type Delegation struct {
-	DelegatorAddress string `json:"delegator_address"`
-	ValidatorAddress string `json:"validator_address"`
-	Shares           string `json:"shares,omitempty"`
-}
-
-func (d *Delegation) Value() string {
-	shares := strings.Split(d.Shares, ".")
-	if len(shares) > 0 {
-		return shares[0]
-	}
-	return d.Shares
-}
-
-type UnbondingDelegation struct {
-	Delegation
-	Entries []UnbondingDelegationEntry `json:"entries"`
-}
-
-type UnbondingDelegationEntry struct {
-	DelegatorAddress string `json:"creation_height"`
-	CompletionTime   string `json:"completion_time"`
-	Balance          string `json:"balance"`
-}
-
-type StakingPool struct {
-	NotBondedTokens string `json:"not_bonded_tokens"`
-	BondedTokens    string `json:"bonded_tokens"`
-}
-
-// Block - top object of get las block request
-type Block struct {
-	Meta BlockMeta `json:"block_meta"`
-}
-
-//BlockMeta - "Block" sub object
-type BlockMeta struct {
-	Header BlockHeader `json:"header"`
-}
-
-//BlockHeader - "BlockMeta" sub object, height
-type BlockHeader struct {
-	Height string `json:"height"`
-}
-
-//UnmarshalJSON reads different message types
-func (m *Message) UnmarshalJSON(buf []byte) error {
-	var messageInternal struct {
-		Type  string          `json:"type"`
-		Value json.RawMessage `json:"value"`
-	}
-
-	err := json.Unmarshal(buf, &messageInternal)
-	if err != nil {
-		return err
-	}
-
-	m.Type = messageInternal.Type
-
-	switch messageInternal.Type {
-	case MsgUndelegate, MsgDelegate:
-		var msgDelegate MessageValueDelegate
-		err = json.Unmarshal(messageInternal.Value, &msgDelegate)
-		m.Value = msgDelegate
-	case MsgSend:
-		var msgTransfer MessageValueTransfer
-		err = json.Unmarshal(messageInternal.Value, &msgTransfer)
-		m.Value = msgTransfer
-	}
-	return err
+type TransferAssetValue struct {
+	TransferValue
+	AssetName string `json:"asset_name"`
 }
 
 type Account struct {
-	Value AccountValue `json:"value"`
+	Data []AccountData `json:"data"`
 }
 
-type AccountValue struct {
-	Coins []Balance `json:"coins"`
+type AccountData struct {
+	Balance  uint      `json:"balance"`
+	AssetsV2 []AssetV2 `json:"assetV2"`
+	Votes    []Votes   `json:"votes"`
+	Frozen   []Frozen  `json:"frozen"`
 }
 
-type Balance struct {
-	Denom  string `json:"denom"`
-	Amount string `json:"amount"`
+type AssetV2 struct {
+	Key string `json:"key"`
+}
+
+type Votes struct {
+	VoteAddress string `json:"vote_address"`
+	VoteCount   int    `json:"vote_count"`
+}
+
+type Frozen struct {
+	ExpireTime    int64       `json:"expire_time"`
+	FrozenBalance interface{} `json:"frozen_balance,string"`
+}
+
+type Asset struct {
+	Data []AssetInfo `json:"data"`
+}
+
+type AssetInfo struct {
+	Name     string `json:"name"`
+	Symbol   string `json:"abbr"`
+	ID       string `json:"id"`
+	Decimals uint   `json:"precision"`
+}
+
+type Validators struct {
+	Witnesses []Validator `json:"witnesses"`
+}
+
+type Validator struct {
+	Address string `json:"address"`
+}
+
+type VotesRequest struct {
+	Address string `json:"address"`
+	Visible bool   `json:"visible"`
+}
+
+func (c *Contract) UnmarshalJSON(buf []byte) error {
+	var contractInternal struct {
+		Type      string          `json:"type"`
+		Parameter json.RawMessage `json:"parameter"`
+	}
+	err := json.Unmarshal(buf, &contractInternal)
+	if err != nil {
+		return err
+	}
+	switch contractInternal.Type {
+	case "TransferContract":
+		var transfer TransferContract
+		err = json.Unmarshal(contractInternal.Parameter, &transfer)
+		c.Parameter = transfer
+	case "TransferAssetContract":
+		var tokenTransfer TransferAssetContract
+		err = json.Unmarshal(contractInternal.Parameter, &tokenTransfer)
+		c.Parameter = tokenTransfer
+	}
+	return err
 }

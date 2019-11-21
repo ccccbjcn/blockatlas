@@ -4,11 +4,11 @@ import (
 	"github.com/spf13/viper"
 	"github.com/trustwallet/blockatlas/coin"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
+	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
 	services "github.com/trustwallet/blockatlas/services/assets"
-	"github.com/trustwallet/blockatlas/util"
-	"sort"
 	"strconv"
+	"sync"
 	"time"
 )
 
@@ -16,98 +16,248 @@ type Platform struct {
 	client Client
 }
 
+const Annual = 4.32
+
 func (p *Platform) Init() error {
 	p.client = Client{blockatlas.InitClient(viper.GetString("nuls.api"))}
 	return nil
 }
 
 func (p *Platform) Coin() coin.Coin {
-	return coin.Coins[coin.NULS]
+	return coin.Coins[coin.TRX]
 }
 
-func (p *Platform) GetBlockByNumber(num int64) (*blockatlas.Block, error) {
-	srcTxs, err := p.client.GetBlockByNumber(num)
+func (p *Platform) GetTxsByAddress(address string) (blockatlas.TxPage, error) {
+	Txs, err := p.client.GetTxsOfAddress(address, "")
+	if err != nil && len(Txs) == 0 {
+		return nil, err
+	}
+
+	var txs []blockatlas.Tx
+	for _, srcTx := range Txs {
+		tx, ok := Normalize(&srcTx)
+		if ok {
+			txs = append(txs, tx)
+		}
+	}
+
+	return txs, nil
+}
+
+func (p *Platform) GetTokenTxsByAddress(address, token string) (blockatlas.TxPage, error) {
+	tokenTxs, err := p.client.GetTxsOfAddress(address, token)
 	if err != nil {
 		return nil, err
 	}
 
-	txs := NormalizeTxs(srcTxs, len(srcTxs))
-	return &blockatlas.Block{
-		Number: num,
-		Txs:    txs,
-	}, nil
-}
-
-func (p *Platform) CurrentBlockNumber() (int64, error) {
-	return p.client.CurrentBlockNumber()
-}
-
-func (p *Platform) GetTxsByAddress(address string) (blockatlas.TxPage, error) {
-	srcTxes := make([]Tx, 0)
-
-	tagsList := []string{"recipient", "sender", "delegator", "destination-validator"}
-
-	for _, tag := range tagsList {
-		responseTxes, _ := p.client.GetAddrTxes(address, tag)
-		srcTxes = append(srcTxes, responseTxes...)
+	if len(tokenTxs) == 0 {
+		return nil, err
 	}
 
-	normalisedTxs := make([]blockatlas.Tx, 0)
+	var tokenInfo AssetInfo
+	info, err := p.client.GetTokenInfo(token)
+	if err != nil && len(info.Data) == 0 {
+		return nil, err
+	}
 
-	for _, srcTx := range srcTxes {
-		normalisedInputTx, ok := Normalize(&srcTx)
-		if ok {
-			normalisedTxs = append(normalisedTxs, normalisedInputTx)
+	tokenInfo = info.Data[0]
+
+	var txs []blockatlas.Tx
+	for _, trx := range tokenTxs {
+		tx, err := NormalizeTokenTransfer(&trx, tokenInfo)
+		if err != nil {
+			logger.Error(err)
+			continue
 		}
+		txs = append(txs, tx)
 	}
 
-	sort.Slice(normalisedTxs, func(i, j int) bool {
-		return normalisedTxs[i].Date > normalisedTxs[j].Date
-	})
+	return txs, nil
+}
 
-	return normalisedTxs, nil
+func NormalizeTokenTransfer(srcTx *Tx, tokenInfo AssetInfo) (tx blockatlas.Tx, e error) {
+	if len(srcTx.Data.Contracts) == 0 {
+		return tx, errors.E("token transfer without contract", errors.TypePlatformApi,
+			errors.Params{"tokenInfo": tokenInfo, "tx": tx}).PushToSentry()
+	}
+	contract := &srcTx.Data.Contracts[0]
+
+	switch contract.Parameter.(type) {
+	case TransferAssetContract:
+		transfer := contract.Parameter.(TransferAssetContract)
+		from, err := HexToAddress(transfer.Value.OwnerAddress)
+		if err != nil {
+			return tx, err
+		}
+		to, err := HexToAddress(transfer.Value.ToAddress)
+		if err != nil {
+			return tx, err
+		}
+
+		return blockatlas.Tx{
+			ID:   srcTx.ID,
+			Coin: coin.TRX,
+			Date: srcTx.BlockTime / 1000,
+			Fee:  "0",
+			From: from,
+			To:   to,
+			Meta: blockatlas.TokenTransfer{
+				Name:     tokenInfo.Name,
+				Symbol:   tokenInfo.Symbol,
+				TokenID:  tokenInfo.ID,
+				Decimals: tokenInfo.Decimals,
+				Value:    transfer.Value.Amount,
+				From:     from,
+				To:       to,
+			},
+		}, nil
+	default:
+		return tx, nil
+	}
 }
 
 func (p *Platform) GetValidators() (blockatlas.ValidatorPage, error) {
 	results := make(blockatlas.ValidatorPage, 0)
 	validators, err := p.client.GetValidators()
+
 	if err != nil {
-		return nil, err
-	}
-	pool, err := p.client.GetPool()
-	if err != nil {
-		return nil, err
+		return results, err
 	}
 
-	inflation, err := p.client.GetInflation()
-	if err != nil {
-		return nil, err
-	}
-
-	for _, validator := range validators {
-		results = append(results, normalizeValidator(validator, pool, inflation, p.Coin()))
+	for _, v := range validators.Witnesses {
+		if val, ok := normalizeValidator(v); ok {
+			results = append(results, val)
+		}
 	}
 
 	return results, nil
 }
 
 func (p *Platform) GetDetails() blockatlas.StakingDetails {
-	//TODO: Find a way to have a dynamic
+	return getDetails()
+}
+
+func getDetails() blockatlas.StakingDetails {
 	return blockatlas.StakingDetails{
-		Reward:        blockatlas.StakingReward{Annual: 11},
-		MinimumAmount: blockatlas.Amount("0"),
-		LockTime:      1814400,
+		Reward:        blockatlas.StakingReward{Annual: Annual},
+		MinimumAmount: blockatlas.Amount("1000000"),
+		LockTime:      259200,
 		Type:          blockatlas.DelegationTypeDelegate,
+	}
+}
+
+func normalizeValidator(v Validator) (validator blockatlas.Validator, ok bool) {
+	address, err := HexToAddress(v.Address)
+	if err != nil {
+		return validator, false
+	}
+
+	return blockatlas.Validator{
+		Status:  true,
+		ID:      address,
+		Details: getDetails(),
+	}, true
+}
+
+/// Normalize converts a Tron transaction into the generic model
+func Normalize(srcTx *Tx) (tx blockatlas.Tx, ok bool) {
+	if len(srcTx.Data.Contracts) < 1 {
+		return tx, false
+	}
+
+	// TODO Support multiple transfers in a single transaction
+	contract := &srcTx.Data.Contracts[0]
+	switch contract.Parameter.(type) {
+	case TransferContract:
+		transfer := contract.Parameter.(TransferContract)
+		from, err := HexToAddress(transfer.Value.OwnerAddress)
+		if err != nil {
+			return tx, false
+		}
+		to, err := HexToAddress(transfer.Value.ToAddress)
+		if err != nil {
+			return tx, false
+		}
+
+		return blockatlas.Tx{
+			ID:   srcTx.ID,
+			Coin: coin.TRX,
+			Date: srcTx.BlockTime / 1000,
+			From: from,
+			To:   to,
+			Fee:  "0",
+			Meta: blockatlas.Transfer{
+				Value:    transfer.Value.Amount,
+				Symbol:   coin.Coins[coin.TRX].Symbol,
+				Decimals: coin.Coins[coin.TRX].Decimals,
+			},
+		}, true
+	default:
+		return tx, false
+	}
+}
+
+func (p *Platform) GetTokenListByAddress(address string) (blockatlas.TokenPage, error) {
+	tokens, err := p.client.GetAccount(address)
+	if err != nil {
+		return nil, err
+	}
+
+	tokenPage := make([]blockatlas.Token, 0)
+	var tokenIDs []string
+	if len(tokens.Data) == 0 {
+		return tokenPage, nil
+	}
+
+	for _, v := range tokens.Data[0].AssetsV2 {
+		tokenIDs = append(tokenIDs, v.Key)
+	}
+	tokensInfoChan := make(chan *Asset, len(tokenIDs))
+
+	var wg sync.WaitGroup
+	wg.Add(len(tokenIDs))
+	for _, id := range tokenIDs {
+		go func(id string) {
+			defer wg.Done()
+			info, err := p.client.GetTokenInfo(id)
+			if err != nil {
+				logger.Error("GetTokenInfo", err)
+			}
+			tokensInfoChan <- info
+		}(id)
+	}
+	wg.Wait()
+	close(tokensInfoChan)
+
+	tokensInfoMap := make(map[string]AssetInfo)
+	for info := range tokensInfoChan {
+		if len(info.Data) == 0 {
+			continue
+		}
+		tokensInfoMap[info.Data[0].ID] = info.Data[0]
+	}
+
+	for _, v := range tokens.Data[0].AssetsV2 {
+		tokenPage = append(tokenPage, NormalizeToken(tokensInfoMap[v.Key]))
+	}
+
+	return tokenPage, nil
+}
+
+func NormalizeToken(info AssetInfo) blockatlas.Token {
+	return blockatlas.Token{
+		Name:     info.Name,
+		Symbol:   info.Symbol,
+		TokenID:  info.ID,
+		Coin:     coin.TRX,
+		Decimals: info.Decimals,
+		Type:     blockatlas.TokenTypeTRC10,
 	}
 }
 
 func (p *Platform) GetDelegations(address string) (blockatlas.DelegationsPage, error) {
 	results := make(blockatlas.DelegationsPage, 0)
-	delegations, err := p.client.GetDelegations(address)
-	if err != nil {
-		return nil, err
-	}
-	unbondingDelegations, err := p.client.GetUnbondingDelegations(address)
+	votes, err := p.client.GetAccountVotes(address)
 	if err != nil {
 		return nil, err
 	}
@@ -115,9 +265,7 @@ func (p *Platform) GetDelegations(address string) (blockatlas.DelegationsPage, e
 	if err != nil {
 		return nil, err
 	}
-	results = append(results, NormalizeDelegations(delegations, validators)...)
-	results = append(results, NormalizeUnbondingDelegations(unbondingDelegations, validators)...)
-
+	results = append(results, NormalizeDelegations(votes, validators)...)
 	return results, nil
 }
 
@@ -126,172 +274,33 @@ func (p *Platform) UndelegatedBalance(address string) (string, error) {
 	if err != nil {
 		return "0", err
 	}
-	for _, coin := range account.Value.Coins {
-		if coin.Denom == "uatom" {
-			return coin.Amount, nil
-		}
+
+	for _, data := range account.Data {
+		return strconv.FormatUint(uint64(data.Balance), 10), nil
 	}
 	return "0", nil
 }
 
-func NormalizeDelegations(delegations []Delegation, validators blockatlas.ValidatorMap) []blockatlas.Delegation {
+func NormalizeDelegations(data *AccountData, validators blockatlas.ValidatorMap) []blockatlas.Delegation {
 	results := make([]blockatlas.Delegation, 0)
-	for _, v := range delegations {
-		validator, ok := validators[v.ValidatorAddress]
+	for _, v := range data.Votes {
+		validator, ok := validators[v.VoteAddress]
 		if !ok {
 			logger.Error("Validator not found", validator)
 			continue
 		}
 		delegation := blockatlas.Delegation{
 			Delegator: validator,
-			Value:     v.Value(),
+			Value:     strconv.Itoa(v.VoteCount * 1000000),
 			Status:    blockatlas.DelegationStatusActive,
+		}
+		for _, f := range data.Frozen {
+			t2 := time.Now().UnixNano() / int64(time.Millisecond)
+			if f.ExpireTime > t2 {
+				delegation.Status = blockatlas.DelegationStatusPending
+			}
 		}
 		results = append(results, delegation)
 	}
 	return results
-}
-
-func NormalizeUnbondingDelegations(delegations []UnbondingDelegation, validators blockatlas.ValidatorMap) []blockatlas.Delegation {
-	results := make([]blockatlas.Delegation, 0)
-	for _, v := range delegations {
-		for _, entry := range v.Entries {
-			validator, ok := validators[v.ValidatorAddress]
-			if !ok {
-				logger.Error("Validator not found", validator)
-				continue
-			}
-			t, _ := time.Parse(time.RFC3339, entry.CompletionTime)
-			delegation := blockatlas.Delegation{
-				Delegator: validator,
-				Value:     entry.Balance,
-				Status:    blockatlas.DelegationStatusPending,
-				Metadata: blockatlas.DelegationMetaDataPending{
-					AvailableDate: uint(t.Unix()),
-				},
-			}
-			results = append(results, delegation)
-		}
-	}
-	return results
-}
-
-// NormalizeTxs converts multiple Cosmos transactions
-func NormalizeTxs(srcTxs []Tx, pageSize int) (txs []blockatlas.Tx) {
-	for _, srcTx := range srcTxs {
-		tx, ok := Normalize(&srcTx)
-		if !ok || len(txs) >= pageSize {
-			continue
-		}
-		txs = append(txs, tx)
-	}
-	return
-}
-
-// Normalize converts an Cosmos transaction into the generic model
-func Normalize(srcTx *Tx) (tx blockatlas.Tx, ok bool) {
-	date, _ := time.Parse("2006-01-02T15:04:05Z", srcTx.Date)
-	block, _ := strconv.ParseUint(srcTx.Block, 10, 64)
-	// Sometimes fees can be null objects (in the case of no fees e.g. F044F91441C460EDCD90E0063A65356676B7B20684D94C731CF4FAB204035B41)
-	var fee string
-	if len(srcTx.Data.Contents.Fee.FeeAmount) == 0 {
-		fee = "0"
-	} else {
-		fee, _ = util.DecimalToSatoshis(srcTx.Data.Contents.Fee.FeeAmount[0].Quantity)
-	}
-
-	tx = blockatlas.Tx{
-		ID:    srcTx.ID,
-		Coin:  coin.ATOM,
-		Date:  date.Unix(),
-		Fee:   blockatlas.Amount(fee),
-		Block: block,
-		Memo:  srcTx.Data.Contents.Memo,
-	}
-
-	if len(srcTx.Data.Contents.Message) > 0 {
-		msg := srcTx.Data.Contents.Message[0]
-		switch msg.Value.(type) {
-		case MessageValueTransfer:
-			transfer := msg.Value.(MessageValueTransfer)
-			fillTransfer(&tx, transfer)
-			return tx, true
-		case MessageValueDelegate:
-			delegate := msg.Value.(MessageValueDelegate)
-			fillDelegate(&tx, delegate, msg.Type)
-			return tx, true
-		}
-	}
-
-	return tx, false
-}
-
-func fillTransfer(tx *blockatlas.Tx, transfer MessageValueTransfer) {
-	value, _ := util.DecimalToSatoshis(transfer.Amount[0].Quantity)
-
-	tx.From = transfer.FromAddr
-	tx.To = transfer.ToAddr
-
-	tx.Meta = blockatlas.Transfer{
-		Value:    blockatlas.Amount(value),
-		Symbol:   coin.Coins[coin.ATOM].Symbol,
-		Decimals: coin.Coins[coin.ATOM].Decimals,
-	}
-}
-
-func fillDelegate(tx *blockatlas.Tx, delegate MessageValueDelegate, msgType string) {
-	value, _ := util.DecimalToSatoshis(delegate.Amount.Quantity)
-
-	tx.From = delegate.DelegatorAddr
-	tx.To = delegate.ValidatorAddr
-
-	title := ""
-	switch msgType {
-	case MsgDelegate:
-		title = blockatlas.AnyActionDelegation
-	case MsgUndelegate:
-		title = blockatlas.AnyActionUndelegation
-	}
-	tx.Meta = blockatlas.AnyAction{
-		Coin:     coin.ATOM,
-		Title:    title,
-		Key:      blockatlas.KeyStakeDelegate,
-		Name:     "ATOM",
-		Symbol:   coin.Coins[coin.ATOM].Symbol,
-		Decimals: coin.Coins[coin.ATOM].Decimals,
-		Value:    blockatlas.Amount(value),
-	}
-}
-
-func normalizeValidator(v Validator, p StakingPool, inflation float64, c coin.Coin) (validator blockatlas.Validator) {
-	reward := CalculateAnnualReward(p, inflation, v)
-	return blockatlas.Validator{
-		Status: v.Status == 2,
-		ID:     v.Address,
-		Details: blockatlas.StakingDetails{
-			Reward:        blockatlas.StakingReward{Annual: reward},
-			MinimumAmount: blockatlas.Amount("0"),
-			LockTime:      1814400,
-			Type:          blockatlas.DelegationTypeDelegate,
-		},
-	}
-}
-
-func CalculateAnnualReward(p StakingPool, inflation float64, validator Validator) float64 {
-	notBondedTokens, err := strconv.ParseFloat(p.NotBondedTokens, 32)
-	if err != nil {
-		return 0
-	}
-
-	bondedTokens, err := strconv.ParseFloat(p.BondedTokens, 32)
-	if err != nil {
-		return 0
-	}
-
-	commission, err := strconv.ParseFloat(validator.Commission.Rate, 32)
-	if err != nil {
-		return 0
-	}
-	result := (notBondedTokens + bondedTokens) / bondedTokens * inflation
-	return (result - (result * commission)) * 100
 }
