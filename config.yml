@@ -200,4 +200,4 @@ digibyte:
   api: https://dgb1.trezor.io/api
 
  nuls:
-  api: https://public1.nuls.io/ 
+  api: https://api.nuls.io/api/
