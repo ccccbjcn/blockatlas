@@ -1,15 +1,16 @@
 package nuls
 
 import (
+	"strconv"
+	"sync"
+	"time"
+
 	"github.com/spf13/viper"
 	"github.com/trustwallet/blockatlas/coin"
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 	"github.com/trustwallet/blockatlas/pkg/errors"
 	"github.com/trustwallet/blockatlas/pkg/logger"
 	services "github.com/trustwallet/blockatlas/services/assets"
-	"strconv"
-	"sync"
-	"time"
 )
 
 type Platform struct {
@@ -24,7 +25,7 @@ func (p *Platform) Init() error {
 }
 
 func (p *Platform) Coin() coin.Coin {
-	return coin.Coins[coin.TRX]
+	return coin.Coins[coin.NULS]
 }
 
 func (p *Platform) GetTxsByAddress(address string) (blockatlas.TxPage, error) {
