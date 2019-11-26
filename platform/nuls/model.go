@@ -5,6 +5,13 @@ import (
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 )
 
+type Jsonrpc struct {
+	Jsonrpc string      `json:"jsonrpc"`
+	Method  string      `json:"method"`
+	Params  interface{} `json:"params"`
+	Id      uint        `json:"id"`
+}
+
 type Page struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`

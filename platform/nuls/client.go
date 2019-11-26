@@ -2,24 +2,28 @@ package nuls
 
 import (
 	"fmt"
+
 	"github.com/trustwallet/blockatlas/pkg/blockatlas"
-	"net/url"
 )
 
 type Client struct {
 	blockatlas.Request
 }
 
+const pubSvcPath = "/"
+
+func InitJsonprc(method string, params interface{}, jsonrpc *Jsonrpc) {
+	jsonrpc.Jsonrpc = "2.0"
+	jsonrpc.Method = method
+	jsonrpc.Id = 8964
+	jsonrpc.Params = params
+}
+
 func (c *Client) GetTxsOfAddress(address, token string) ([]Tx, error) {
-	path := fmt.Sprintf("v1/accounts/%s/transactions", url.PathEscape(address))
-
 	var txs Page
-	err := c.Get(&txs, path, url.Values{
-		"only_confirmed": {"true"},
-		"limit":          {"200"},
-		"token_id":       {token},
-	})
-
+	var body Jsonrpc
+	InitJsonprc("getAccountTxs", &body)
+	err := c.Post(&txs, pubSvcPath, body)
 	return txs.Txs, err
 }
 
