@@ -10,20 +10,42 @@ type Client struct {
 	blockatlas.Request
 }
 
-const pubSvcPath = "/"
+const (
+	JsonRpcVersion = "2.0"
+	PubSvcPath     = "/"
+	Id             = 8964
+	GetAccountTxs  = "getAccountTxs"
+	ChainId        = 1
+)
 
-func InitJsonprc(method string, params interface{}, jsonrpc *Jsonrpc) {
-	jsonrpc.Jsonrpc = "2.0"
+func InitJsonprc(method string, params interface{}, jsonrpc *JsonrpcRequest) {
+	jsonrpc.JsonRpc = JsonRpcVersion
 	jsonrpc.Method = method
-	jsonrpc.Id = 8964
+	jsonrpc.Id = Id
 	jsonrpc.Params = params
 }
 
 func (c *Client) GetTxsOfAddress(address, token string) ([]Tx, error) {
-	var txs Page
-	var body Jsonrpc
-	InitJsonprc("getAccountTxs", &body)
-	err := c.Post(&txs, pubSvcPath, body)
+	var txs JsonRpcResponse
+	var body JsonRpcRequest
+	/*
+	ChainId    uint   `json:"chainId"`
+	PageNumber uint   `json:"pageNumber"`
+	PageSize   uint   `json:"pageSize"`
+	Address    string `json:"address"`
+	TxType     unit   `json:"txType"`
+	IsHidden   bool   `json:"isHidden"`
+	*/
+	var params GetAccountTxsParam = {
+		ChainId: ChainId,
+		PageNumber: 1,
+		PageSize: 200,
+		Address: address,
+		TxType: 0,
+		IsHidden: true,
+	}
+	InitJsonprc(GetAccountTxs, params, &body)
+	err := c.Post(&txs, PubSvcPath, body)
 	return txs.Txs, err
 }
 
