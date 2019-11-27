@@ -14,7 +14,7 @@ const (
 	JsonRpcVersion = "2.0"
 	PubSvcPath     = "/"
 	Id             = 8964
-	GetAccountTxs  = "getAccountTxs"
+	GetAccountTxsMethod  = "getAccountTxs"
 	ChainId        = 1
 )
 
@@ -26,27 +26,19 @@ func InitJsonprc(method string, params interface{}, jsonrpc *JsonrpcRequest) {
 }
 
 func (c *Client) GetTxsOfAddress(address, token string) ([]Tx, error) {
-	var txs JsonRpcResponse
-	var body JsonRpcRequest
-	/*
-	ChainId    uint   `json:"chainId"`
-	PageNumber uint   `json:"pageNumber"`
-	PageSize   uint   `json:"pageSize"`
-	Address    string `json:"address"`
-	TxType     unit   `json:"txType"`
-	IsHidden   bool   `json:"isHidden"`
-	*/
+	var rpcResponse JsonRpcResponse
+	var rpcRequest JsonRpcRequest
 	var params GetAccountTxsParam = {
 		ChainId: ChainId,
 		PageNumber: 1,
-		PageSize: 200,
+		PageSize: 100,
 		Address: address,
 		TxType: 0,
-		IsHidden: true,
+		IsHidden: false,
 	}
-	InitJsonprc(GetAccountTxs, params, &body)
+	InitJsonprc(GetAccountTxsMethod, params, &rpcRequest)
 	err := c.Post(&txs, PubSvcPath, body)
-	return txs.Txs, err
+	return rpcResponse.Result.List, err
 }
 
 func (c *Client) GetAccount(address string) (*Account, error) {

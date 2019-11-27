@@ -2,59 +2,60 @@ package nuls
 
 import (
 	"encoding/json"
-	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 )
 
 type JsonRpcRequest struct {
 	JsonRpc string      `json:"jsonrpc"`
 	Method  string      `json:"method"`
 	Params  interface{} `json:"params"`
-	Id      uint        `json:"id"`
-}
-type GetAccountTxsParam struct {
-	ChainId    uint   `json:"chainId"`
-	PageNumber uint   `json:"pageNumber"`
-	PageSize   uint   `json:"pageSize"`
-	Address    string `json:"address"`
-	TxType     unit   `json:"txType"`
-	IsHidden   bool   `json:"isHidden"`
+	ID      int         `json:"id"`
 }
 
 type JsonRpcResponse struct {
-	Jsonrpc string      `json:"jsonrpc"`
-	Id      uint        `json:"id"`
-	Result  interface{} `json:"result"`
+	Jsonrpc string `json:"jsonrpc"`
+	ID      int    `json:"id"`
+	Result  Result `json:"result"`
+}
+
+type Result struct {
+	PageNumber int  `json:"pageNumber"`
+	PageSize   int  `json:"pageSize"`
+	TotalCount int  `json:"totalCount"`
+	List       []Tx `json:"list"`
 }
 
 type Tx struct {
-	TxHash     string `json:"txHash"`
+	TxHash       string `json:"txHash"`
+	Address      string `json:"address"`
+	Type         int    `json:"type"`
+	CreateTime   int64  `json:"createTime"`
+	Heigth       int64  `json:"height"`
+	ChainId      int    `json:"chainId"`
+	AssetId      int    `json:"assetId"`
+	Symbol       string `json:"symbol"`
+	Values       string `json:"values"`
+	Fee          Fee    `json:"fee"`
+	Balance      string `json:"balance"`
+	TransferType int    `json:"transferType"`
+	Status       int    `json:"status"`
+}
+type Fee struct {
+	ChainId int    `json:"chainId"`
+	AssetId int    `json:"assetId"`
+	Symbol  string `json:"symbol"`
+	Value   string `json:"value"`
+}
+
+type GetAccountTxsParam struct {
+	ChainId    int    `json:"chainId"`
+	PageNumber int    `json:"pageNumber"`
+	PageSize   int    `json:"pageSize"`
 	Address    string `json:"address"`
-	Type       unit   `json:"type"`
-	CreateTime int64  `json:"createTime"`
+	TxType     int    `json:"txType"`
+	IsHidden   bool   `json:"isHidden"`
 }
 
 /*
-"txHash": "a8611112f2b35385ee84f85……",		//交易hash
-"address": "tNULSeBaMrbMRiFA……",			//账户地址
-"type": 1,									//交易类型
-"createTime": 1531152,						//交易时间，单位秒
-"height": 0,								//交易被打包确定的区块高度
-"chainId": 2,								//资产的链id
-"assetId": 1,								//资产id
-"symbol": "NULS",							//资产符号
-"values": 1000000000000000,					//交易金额
-"fee": { 									//bigInt	手续费
-	"chainId": 100,							//手续费链id
-	"assetId": 1,							//手续费资产id
-	"symbol": "ATOM",						//手续费资产符号
-	"value": 100000							//手续费金额
-},
-"balance": 1000000000000000,				//交易后账户的余额
-"transferType": 1,							// -1:转出, 1:转入
-"status": 1									//交易状态 0:未确认,1:已确认
-}
-*/
-
 type Page struct {
 	Success bool   `json:"success"`
 	Error   string `json:"error,omitempty"`
@@ -144,7 +145,7 @@ type VotesRequest struct {
 	Address string `json:"address"`
 	Visible bool   `json:"visible"`
 }
-
+*/
 func (c *Contract) UnmarshalJSON(buf []byte) error {
 	var contractInternal struct {
 		Type      string          `json:"type"`
