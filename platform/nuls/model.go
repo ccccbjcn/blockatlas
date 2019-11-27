@@ -2,6 +2,8 @@ package nuls
 
 import (
 	"encoding/json"
+
+	"github.com/trustwallet/blockatlas/pkg/blockatlas"
 )
 
 type JsonRpcRequest struct {
@@ -25,25 +27,25 @@ type Result struct {
 }
 
 type Tx struct {
-	TxHash       string `json:"txHash"`
-	Address      string `json:"address"`
-	Type         int    `json:"type"`
-	CreateTime   int64  `json:"createTime"`
-	Heigth       int64  `json:"height"`
-	ChainId      int    `json:"chainId"`
-	AssetId      int    `json:"assetId"`
-	Symbol       string `json:"symbol"`
-	Values       string `json:"values"`
-	Fee          Fee    `json:"fee"`
-	Balance      string `json:"balance"`
-	TransferType int    `json:"transferType"`
-	Status       int    `json:"status"`
+	TxHash       string            `json:"txHash"`
+	Address      string            `json:"address"`
+	Type         int               `json:"type"`
+	CreateTime   int64             `json:"createTime"`
+	Heigth       int64             `json:"height"`
+	ChainId      int               `json:"chainId"`
+	AssetId      int               `json:"assetId"`
+	Symbol       string            `json:"symbol"`
+	Values       blockatlas.Amount `json:"values"`
+	Fee          Fee               `json:"fee"`
+	Balance      string            `json:"balance"`
+	TransferType int               `json:"transferType"`
+	Status       int               `json:"status"`
 }
 type Fee struct {
-	ChainId int    `json:"chainId"`
-	AssetId int    `json:"assetId"`
-	Symbol  string `json:"symbol"`
-	Value   string `json:"value"`
+	ChainId int               `json:"chainId"`
+	AssetId int               `json:"assetId"`
+	Symbol  string            `json:"symbol"`
+	Value   blockatlas.Amount `json:"value"`
 }
 
 type GetAccountTxsParam struct {

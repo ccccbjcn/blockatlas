@@ -2,7 +2,6 @@ package nuls
 
 import (
 	"strconv"
-	"sync"
 	"time"
 
 	"github.com/spf13/viper"
@@ -16,8 +15,6 @@ import (
 type Platform struct {
 	client Client
 }
-
-const Annual = 4.32
 
 func (p *Platform) Init() error {
 	p.client = Client{blockatlas.InitClient(viper.GetString("nuls.api"))}
@@ -36,7 +33,7 @@ func (p *Platform) GetTxsByAddress(address string) (blockatlas.TxPage, error) {
 
 	var txs []blockatlas.Tx
 	for _, srcTx := range Txs {
-		tx, ok := Normalize(&srcTx)
+		tx, ok := Normalize(address, &srcTx)
 		if ok {
 			txs = append(txs, tx)
 		}
@@ -45,6 +42,7 @@ func (p *Platform) GetTxsByAddress(address string) (blockatlas.TxPage, error) {
 	return txs, nil
 }
 
+/*
 func (p *Platform) GetTokenTxsByAddress(address, token string) (blockatlas.TxPage, error) {
 	tokenTxs, err := p.client.GetTxsOfAddress(address, token)
 	if err != nil {
@@ -75,7 +73,7 @@ func (p *Platform) GetTokenTxsByAddress(address, token string) (blockatlas.TxPag
 
 	return txs, nil
 }
-
+*/
 func NormalizeTokenTransfer(srcTx *Tx, tokenInfo AssetInfo) (tx blockatlas.Tx, e error) {
 	if len(srcTx.Data.Contracts) == 0 {
 		return tx, errors.E("token transfer without contract", errors.TypePlatformApi,
@@ -160,44 +158,56 @@ func normalizeValidator(v Validator) (validator blockatlas.Validator, ok bool) {
 	}, true
 }
 
-/// Normalize converts a Tron transaction into the generic model
-func Normalize(srcTx *Tx) (tx blockatlas.Tx, ok bool) {
-	if len(srcTx.Data.Contracts) < 1 {
-		return tx, false
-	}
+/// Normalize converts a Nuls transaction into the generic model
+func Normalize(from string, srcTx *Tx) (tx blockatlas.Tx, ok bool) {
+	return blockatlas.Tx{
+		ID:   srcTx.TxHash,
+		Coin: coin.NULS,
+		Date: srcTx.CreateTime / 1000,
+		From: from,
+		To:   srcTx.Address,
+		Fee:  srcTx.Fee.Value,
+		Meta: blockatlas.Transfer{
+			Value:    srcTx.Values,
+			Symbol:   coin.Coins[coin.TRX].Symbol,
+			Decimals: coin.Coins[coin.TRX].Decimals,
+		},
+	}, true
+	/*
+		// TODO Support multiple transfers in a single transaction
+		contract := &srcTx.Data.Contracts[0]
+		switch contract.Parameter.(type) {
+		case TransferContract:
+			transfer := contract.Parameter.(TransferContract)
+			from, err := HexToAddress(transfer.Value.OwnerAddress)
+			if err != nil {
+				return tx, false
+			}
+			to, err := HexToAddress(transfer.Value.ToAddress)
+			if err != nil {
+				return tx, false
+			}
 
-	// TODO Support multiple transfers in a single transaction
-	contract := &srcTx.Data.Contracts[0]
-	switch contract.Parameter.(type) {
-	case TransferContract:
-		transfer := contract.Parameter.(TransferContract)
-		from, err := HexToAddress(transfer.Value.OwnerAddress)
-		if err != nil {
+			return blockatlas.Tx{
+				ID:   srcTx.ID,
+				Coin: coin.TRX,
+				Date: srcTx.BlockTime / 1000,
+				From: from,
+				To:   to,
+				Fee:  "0",
+				Meta: blockatlas.Transfer{
+					Value:    transfer.Value.Amount,
+					Symbol:   coin.Coins[coin.TRX].Symbol,
+					Decimals: coin.Coins[coin.TRX].Decimals,
+				},
+			}, true
+		default:
 			return tx, false
 		}
-		to, err := HexToAddress(transfer.Value.ToAddress)
-		if err != nil {
-			return tx, false
-		}
-
-		return blockatlas.Tx{
-			ID:   srcTx.ID,
-			Coin: coin.TRX,
-			Date: srcTx.BlockTime / 1000,
-			From: from,
-			To:   to,
-			Fee:  "0",
-			Meta: blockatlas.Transfer{
-				Value:    transfer.Value.Amount,
-				Symbol:   coin.Coins[coin.TRX].Symbol,
-				Decimals: coin.Coins[coin.TRX].Decimals,
-			},
-		}, true
-	default:
-		return tx, false
-	}
+	*/
 }
 
+/*
 func (p *Platform) GetTokenListByAddress(address string) (blockatlas.TokenPage, error) {
 	tokens, err := p.client.GetAccount(address)
 	if err != nil {
@@ -255,7 +265,7 @@ func NormalizeToken(info AssetInfo) blockatlas.Token {
 		Type:     blockatlas.TokenTypeTRC10,
 	}
 }
-
+*/
 func (p *Platform) GetDelegations(address string) (blockatlas.DelegationsPage, error) {
 	results := make(blockatlas.DelegationsPage, 0)
 	votes, err := p.client.GetAccountVotes(address)
