@@ -15,6 +15,8 @@ const (
 	PubSvcPath     = "/"
 	Id             = 8964
 	GetAccountTxsMethod  = "getAccountTxs"
+	GetConsensusNodes  = "getConsensusNodes"
+	GetAccountConsensus = "getAccountConsensus"
 	ChainId        = 1
 )
 
@@ -30,45 +32,42 @@ func (c *Client) GetTxsOfAddress(address, token string) ([]Tx, error) {
 	var rpcRequest JsonRpcRequest
 	var params GetAccountTxsParam = {
 		ChainId: ChainId,
-		PageNumber: 1,
-		PageSize: 100,
+		PageNumber: {strconv.FormatInt(1, 10)},
+		PageSize: {strconv.FormatInt(blockatlas.ValidatorsPerPage, 10)},
 		Address: address,
 		TxType: 0,
 		IsHidden: false,
 	}
 	InitJsonprc(GetAccountTxsMethod, params, &rpcRequest)
-	err := c.Post(&txs, PubSvcPath, body)
+	err := c.Post(&rpcResponse, PubSvcPath, JsonRpcRequest)
 	return rpcResponse.Result.List, err
 }
 
-func (c *Client) GetAccount(address string) (*Account, error) {
-	path := fmt.Sprintf("v1/accounts/%s", address)
-
-	var accounts Account
-	err := c.Get(&accounts, path, nil)
-
-	return &accounts, err
-}
-
-func (c *Client) GetAccountVotes(address string) (*AccountData, error) {
-	var account AccountData
-	err := c.Post(&account, "wallet/getaccount", VotesRequest{Address: address, Visible: true})
-	return &account, err
-}
-
-func (c *Client) GetTokenInfo(id string) (*Asset, error) {
-	path := fmt.Sprintf("v1/assets/%s", id)
-
-	var asset Asset
-	err := c.Get(&asset, path, nil)
-
-	return &asset, err
-}
-
-func (c *Client) GetValidators() (validators Validators, err error) {
-	err = c.Get(&validators, "wallet/listwitnesses", nil)
-	if err != nil {
-		return validators, err
+func (c *Client) GetValidators() (validators []Validator, err error) {
+	var rpcResponse JsonRpcResponse
+	var rpcRequest JsonRpcRequest
+	var params GetConsensusNodesParam = {
+		ChainId: ChainId,
+		PageNumber: {strconv.FormatInt(1, 10)},
+		PageSize: {strconv.FormatInt(blockatlas.ValidatorsPerPage, 10)},
+		Type: 0,  // all nodes
 	}
-	return validators, err
+	InitJsonprc(GetConsensusNodes, params, &rpcRequest)
+	err := c.Post(&rpcResponse, PubSvcPath, JsonRpcRequest)
+	return rpcResponse.Result.List, err
+}
+
+func (c *Client) GetDelegations(address string) (delegations []Delegation, err error) {
+	var rpcResponse JsonRpcResponse
+	var rpcRequest JsonRpcRequest
+	var params GetConsensusNodesParam = {
+		ChainId: ChainId,
+		PageNumber: {strconv.FormatInt(1, 10)},
+		PageSize: {strconv.FormatInt(blockatlas.ValidatorsPerPage, 10)},
+		Address: address,
+		AgentHash: null,
+	}
+	InitJsonprc(GetAccountConsensus, params, &rpcRequest)
+	err := c.Post(&rpcResponse, PubSvcPath, JsonRpcRequest)
+	return rpcResponse.Result.List, err
 }
